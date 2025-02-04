@@ -14,7 +14,7 @@ A MagicMirror² module to display oil tank levels monitored by Kingspan Watchman
 Navigate to your MagicMirror `modules` directory and clone the module:
 ```sh
 cd ~/MagicMirror/modules
-git clone https://github.com/YOUR_GITHUB_USERNAME/MMM-WatchManSensit.git
+git clone https://github.com/darrenmfw/MMM-WatchManSensit.git
 cd MMM-WatchManSensit
 ```
 
