@@ -21,7 +21,7 @@ cd MMM-WatchManSensit
 ### Step 2: Set Up a Virtual Environment and Install Dependencies
 Run the following command to create and activate a virtual environment, then install dependencies:
 ```sh
-cd ~/MagicMirror/modules/MMM-WatchManSensit && python3 -m venv venv && source venv/bin/activate && pip install kingspan-connect-sensor flask
+cd ~/MagicMirror/modules/MMM-WatchManSensit && python3 -m venv venv && source venv/bin/activate
 ```
 **Note:** This process may take a while, with periods of inactivity. Please be patient while dependencies are being installed.
 
@@ -30,7 +30,29 @@ To deactivate the virtual environment when you're done, run:
 deactivate
 ```
 
-### Step 3: Configure the Module
+### Step 3: Manually Install `kingspan-connect-sensor`
+`pip` may not properly install the `kingspan-connect-sensor` package. If it fails to install correctly, follow these steps:
+
+1. **Navigate to the virtual environment's `site-packages` directory:**
+   ```sh
+   cd ~/MagicMirror/modules/MMM-WatchManSensit/venv/lib/python3.11/site-packages
+   ```
+2. **Manually clone the package from GitHub:**
+   ```sh
+   git clone https://github.com/masaccio/kingspan-connect-sensor.git kingspan_connect_sensor
+   ```
+3. **Ensure the package contains `__init__.py`:**
+   ```sh
+   cd kingspan_connect_sensor
+   touch __init__.py
+   ```
+4. **Verify the package installation:**
+   ```sh
+   python -c "import kingspan_connect_sensor; print(kingspan_connect_sensor.__file__)"
+   ```
+   If this prints a valid path, the module is installed correctly.
+
+### Step 4: Configure the Module
 Edit your MagicMirror `config.js` file and add the following:
 ```js
 {
@@ -46,9 +68,6 @@ Edit your MagicMirror `config.js` file and add the following:
   }
 }
 ```
-
-### Step 4: Set Up the API Server
-The `watchman_api.py` script is included in the repository. You just need to run it to start the API server.
 
 ### Step 5: Run the API Server
 To start the API server manually:
