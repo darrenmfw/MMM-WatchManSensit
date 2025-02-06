@@ -23,6 +23,12 @@ Run the following command to create and activate a virtual environment, then ins
 ```sh
 cd ~/MagicMirror/modules/MMM-WatchManSensit && python3 -m venv venv && source venv/bin/activate && pip install kingspan-connect-sensor flask
 ```
+**Note:** This process may take a while, with periods of inactivity. Please be patient while dependencies are being installed.
+
+To deactivate the virtual environment when you're done, run:
+```sh
+deactivate
+```
 
 ### Step 3: Configure the Module
 Edit your MagicMirror `config.js` file and add the following:
