@@ -4,7 +4,7 @@ A MagicMirror² module to display oil tank levels monitored by Kingspan Watchman
 
 ## Features
 - Displays oil tank levels as vertical bars with gradient colours.
-- Estimates the date when the tank will reach a defined low level threshold.
+- Estimates the date when the tank will reach a defined low-level threshold.
 - Fetches data from Kingspan Watchman Sensit via a Python API.
 - Configurable update intervals and history duration.
 
@@ -18,41 +18,16 @@ git clone https://github.com/darrenmfw/MMM-WatchManSensit.git
 cd MMM-WatchManSensit
 ```
 
-### Step 2: Set Up a Virtual Environment and Install Dependencies
-Run the following command to create and activate a virtual environment, then install dependencies:
+### Step 2: Create a Virtual Environment & Install Dependencies
+Ensure you have Python 3 installed, then create a virtual environment and install the required libraries:
 ```sh
-cd ~/MagicMirror/modules/MMM-WatchManSensit && python3 -m venv venv && source venv/bin/activate
-```
-**Note:** This process may take a while, with periods of inactivity. Please be patient while dependencies are being installed.
-
-To deactivate the virtual environment when you're done, run:
-```sh
-deactivate
+python3 -m venv venv
+source venv/bin/activate
+pip install --no-cache-dir -r requirements.txt
+pip install --no-cache-dir git+https://github.com/masaccio/kingspan-connect-sensor.git
 ```
 
-### Step 3: Manually Install `kingspan-connect-sensor`
-`pip` may not properly install the `kingspan-connect-sensor` package. If it fails to install correctly, follow these steps:
-
-1. **Navigate to the virtual environment's `site-packages` directory:**
-   ```sh
-   cd ~/MagicMirror/modules/MMM-WatchManSensit/venv/lib/python3.11/site-packages
-   ```
-2. **Manually clone the package from GitHub:**
-   ```sh
-   git clone https://github.com/masaccio/kingspan-connect-sensor.git kingspan_connect_sensor
-   ```
-3. **Ensure the package contains `__init__.py`:**
-   ```sh
-   cd kingspan_connect_sensor
-   touch __init__.py
-   ```
-4. **Verify the package installation:**
-   ```sh
-   python -c "import kingspan_connect_sensor; print(kingspan_connect_sensor.__file__)"
-   ```
-   If this prints a valid path, the module is installed correctly.
-
-### Step 4: Configure the Module
+### Step 3: Configure the Module
 Edit your MagicMirror `config.js` file and add the following:
 ```js
 {
@@ -69,24 +44,39 @@ Edit your MagicMirror `config.js` file and add the following:
 }
 ```
 
-### Step 5: Run the API Server
-To start the API server manually:
+### Step 4: Start the API Server
 ```sh
-cd ~/MagicMirror/modules/MMM-WatchManSensit && source venv/bin/activate && python watchman_api.py
+source venv/bin/activate
+nohup python watchman_api.py --host=0.0.0.0 --port=5001 > watchman_api.log 2>&1 &
 ```
+
+To verify the API is running:
+```sh
+curl http://127.0.0.1:5001/get-oil-levels
+```
+
+### Step 5: Restart MagicMirror
+Restart MagicMirror to apply changes:
+```sh
+pm start
+```
+
 To ensure the script runs on startup, add it to `crontab`:
 ```sh
 crontab -e
 ```
 Add the following line:
 ```
-@reboot cd ~/MagicMirror/modules/MMM-WatchManSensit && source venv/bin/activate && python watchman_api.py &
+@reboot /usr/bin/python3 /path/to/MMM-WatchManSensit/venv/bin/python /path/to/MMM-WatchManSensit/watchman_api.py --host=0.0.0.0 --port=5001 &
 ```
 
-### Step 6: Restart MagicMirror
-Restart MagicMirror to apply changes:
+### Step 6: Troubleshooting
+If the module is stuck on "Loading oil levels", try the following:
 ```sh
-pm start
+pkill -f watchman_api.py
+source venv/bin/activate
+nohup python watchman_api.py --host=0.0.0.0 --port=5001 > watchman_api.log 2>&1 &
+curl http://127.0.0.1:5001/get-oil-levels
 ```
 
 ## License
