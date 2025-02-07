@@ -58,7 +58,7 @@ curl http://127.0.0.1:5001/get-oil-levels
 ### Step 5: Restart MagicMirror
 Restart MagicMirror to apply changes:
 ```sh
-pm start
+pm2 restart MagicMirror
 ```
 
 To ensure the script runs on startup, add it to `crontab`:
