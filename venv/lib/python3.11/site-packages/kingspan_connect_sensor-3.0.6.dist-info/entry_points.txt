@@ -1,0 +1,5 @@
+[console_scripts]
+kingspan-export=connectsensor._kingspan_export:main
+kingspan-notifier=connectsensor._kingspan_notifier:main
+kingspan-status=connectsensor._kingspan_status:main
+

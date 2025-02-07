@@ -2,7 +2,8 @@ import sys
 sys.path.insert(0, "/home/pi/MagicMirror/modules/MMM-WatchManSensit/venv/lib/python3.11/site-packages")
 
 from flask import Flask, jsonify
-from kingspan_connect_sensor import KingspanConnect
+import kingspan_connect_sensor
+print(dir(kingspan_connect_sensor))  # Debugging
 import datetime
 
 USERNAME = "your_email@example.com"
