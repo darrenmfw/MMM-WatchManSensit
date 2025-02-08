@@ -35,7 +35,6 @@ module.exports = NodeHelper.create({
     // Log in to the Kingspan Connect service.
     login: function(config, callback) {
         var self = this;
-        // Assumed login endpoint – update as needed.
         var loginEndpoint = config.apiBaseUrl + "/login";
         var postData = JSON.stringify({
             username: config.username,
@@ -58,9 +57,11 @@ module.exports = NodeHelper.create({
             res.on("end", function() {
                 try {
                     var response = JSON.parse(data);
+                    console.log("Login response:", response);  // Logging the raw login response.
                     if (response.token) {
                         self.token = response.token;
-                        // Optionally store expiry info if provided.
+                        // Optionally store expiry info if provided:
+                        // self.tokenExpiry = response.expires_in;
                         callback(null);
                     } else {
                         callback("No token received. Response: " + data);
@@ -82,7 +83,6 @@ module.exports = NodeHelper.create({
     // Fetch sensor (tank) data from the API.
     fetchSensorData: function(config) {
         var self = this;
-        // Assumed endpoint for sensor data – update this as needed.
         var sensorEndpoint = config.apiBaseUrl + "/sensit";
 
         var options = {
@@ -101,7 +101,9 @@ module.exports = NodeHelper.create({
             res.on("end", function() {
                 try {
                     var response = JSON.parse(data);
-                    // Extract the sensor data. Adjust key names based on your reverse‑engineering.
+                    console.log("Sensor API response:", response);  // Logging the raw sensor data.
+                    
+                    // Adjust these keys based on your actual API response structure.
                     var tankPercentage = response.tankPercentage || "N/A";
                     var lastReadingDate = response.lastReadingDate || "N/A";
 
