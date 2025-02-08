@@ -62,9 +62,9 @@ A MagicMirror² module that integrates with the Kingspan WatchMan SENSiT service
      position: "top_right", // Change this to your preferred location.
      config: {
        updateInterval: 60000, // Update every 60 seconds.
-       userid: "BOX20026081", // Your user ID (as observed in the SOAP requests).
-       password: "Millington1!", // Your password.
-       signalmanno: "20026081", // Device identifier (signalman number).
+       userid: "", // Your user ID (as observed in the SOAP requests eg. BOX12345678).
+       password: "", // Your password.
+       signalmanno: "", // Device identifier (signalman number eg. 12345678).
        culture: "en" // Culture/language parameter.
      }
    }
