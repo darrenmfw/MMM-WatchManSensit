@@ -7,6 +7,7 @@ module.exports = NodeHelper.create({
 
     start: function() {
         console.log("Starting node helper for module: " + this.name);
+        Log.info("MMM-WatchManSensit starting...");
     },
 
     // Listen for notifications from the front‑end.
