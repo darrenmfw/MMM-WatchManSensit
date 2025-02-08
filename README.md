@@ -39,7 +39,15 @@ A MagicMirror² module that integrates with the Kingspan WatchMan SENSiT service
 
 3. **Configure the Module**
 
-   Open your MagicMirror `config/config.js` file and add the following entry to the `modules` array:
+   Open your MagicMirror `config/config.js` file using your preferred text editor. For example, on Linux or macOS you can open it with nano by running:
+   ```bash
+   nano ~/MagicMirror/config/config.js
+   ```
+   On Windows, you might open it with Notepad:
+   ```bash
+   notepad C:\MagicMirror\config\config.js
+   ```
+   Then add the following entry to the `modules` array:
    ```js
    {
      module: "MMM-WatchManSensit",
