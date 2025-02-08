@@ -44,22 +44,35 @@ module.exports = NodeHelper.create({
                     if (err) {
                         self.sendSocketNotification("WATCHMAN_ERROR", "XML parse error: " + err);
                     } else {
+                        console.log("Parsed XML object:", result);
                         try {
                             // Navigate the parsed XML structure.
                             var envelope = result["soap:Envelope"];
                             var body = envelope["soap:Body"];
                             var response = body["SoapMobileAPPGetLatestLevel_v3Response"];
                             var resultData = response["SoapMobileAPPGetLatestLevel_v3Result"];
-                            var level = resultData["Level"];
-                            var levelPercentage = level["LevelPercentage"];
-                            var readingDate = level["ReadingDate"];
-                            
-                            var sensorData = {
-                                lastReading: levelPercentage + "%",
-                                lastReadingDate: new Date(readingDate).toLocaleString()
-                            };
-                            
-                            self.sendSocketNotification("WATCHMAN_DATA_RESPONSE", sensorData);
+
+                            // First try to get the valid Level data.
+                            var levelElement = resultData["Level"];
+                            if (levelElement && levelElement["LevelPercentage"] && parseFloat(levelElement["LevelPercentage"]) > 0) {
+                                var levelPercentage = levelElement["LevelPercentage"];
+                                var readingDate = levelElement["ReadingDate"];
+                                var sensorData = {
+                                    lastReading: levelPercentage + "%",
+                                    lastReadingDate: new Date(readingDate).toLocaleString()
+                                };
+                                self.sendSocketNotification("WATCHMAN_DATA_RESPONSE", sensorData);
+                            } else {
+                                // Fallback: if Level data is missing or invalid, check SmartServReading.
+                                var smartReading = resultData["SmartServReading"];
+                                var fallbackPercentage = smartReading ? smartReading["LevelPercentage"] : "N/A";
+                                var fallbackDate = smartReading ? smartReading["ReadingDate"] : "N/A";
+                                var sensorDataFallback = {
+                                    lastReading: fallbackPercentage + (fallbackPercentage !== "N/A" ? "%" : ""),
+                                    lastReadingDate: fallbackDate !== "N/A" ? new Date(fallbackDate).toLocaleString() : "N/A"
+                                };
+                                self.sendSocketNotification("WATCHMAN_DATA_RESPONSE", sensorDataFallback);
+                            }
                         } catch (ex) {
                             self.sendSocketNotification("WATCHMAN_ERROR", "Error extracting data: " + ex);
                         }
