@@ -1,128 +1,84 @@
 var NodeHelper = require("node_helper");
 var https = require("https");
+var xml2js = require("xml2js");
 
 module.exports = NodeHelper.create({
-    token: null,         // Access token obtained upon login.
-    tokenExpiry: null,   // (Optional) Token expiry information.
+    updateLatestLevel: function(config) {
+        var self = this;
+        // Construct the SOAP XML envelope for the "Get Latest Level" call.
+        var soapEnvelope =
+          '<?xml version="1.0" encoding="utf-8"?>' +
+          '<soap:Envelope xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" ' +
+          'xmlns:xsd="http://www.w3.org/2001/XMLSchema" ' +
+          'xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/">' +
+            '<soap:Body>' +
+              '<SoapMobileAPPGetLatestLevel_v3 xmlns="http://mobileapp/">' +
+                '<userid>' + config.userid + '</userid>' +
+                '<password>' + config.password + '</password>' +
+                '<signalmanno>' + config.signalmanno + '</signalmanno>' +
+                '<culture>' + config.culture + '</culture>' +
+              '</SoapMobileAPPGetLatestLevel_v3>' +
+            '</soap:Body>' +
+          '</soap:Envelope>';
 
-    start: function() {
-        console.log("MMM-WatchManSensit NodeHelper starting...");
+        var options = {
+            hostname: 'www.connectsensor.com',
+            path: '/soap/MobileApp.asmx',
+            method: 'POST',
+            headers: {
+                "Content-Type": "text/xml; charset=utf-8",
+                "SOAPAction": '"http://mobileapp/SoapMobileAPPGetLatestLevel_v3"',
+                "Content-Length": Buffer.byteLength(soapEnvelope)
+            }
+        };
+
+        var req = https.request(options, function(res) {
+            var data = "";
+            res.on("data", function(chunk) {
+                data += chunk;
+            });
+            res.on("end", function() {
+                console.log("Received SOAP response:", data);
+                var parser = new xml2js.Parser({ explicitArray: false });
+                parser.parseString(data, function(err, result) {
+                    if (err) {
+                        self.sendSocketNotification("WATCHMAN_ERROR", "XML parse error: " + err);
+                    } else {
+                        try {
+                            // Navigate the parsed XML structure.
+                            var envelope = result["soap:Envelope"];
+                            var body = envelope["soap:Body"];
+                            var response = body["SoapMobileAPPGetLatestLevel_v3Response"];
+                            var resultData = response["SoapMobileAPPGetLatestLevel_v3Result"];
+                            var level = resultData["Level"];
+                            var levelPercentage = level["LevelPercentage"];
+                            var readingDate = level["ReadingDate"];
+                            
+                            var sensorData = {
+                                lastReading: levelPercentage + "%",
+                                lastReadingDate: new Date(readingDate).toLocaleString()
+                            };
+                            
+                            self.sendSocketNotification("WATCHMAN_DATA_RESPONSE", sensorData);
+                        } catch (ex) {
+                            self.sendSocketNotification("WATCHMAN_ERROR", "Error extracting data: " + ex);
+                        }
+                    }
+                });
+            });
+        });
+
+        req.on("error", function(err) {
+            self.sendSocketNotification("WATCHMAN_ERROR", "HTTP error: " + err);
+        });
+
+        req.write(soapEnvelope);
+        req.end();
     },
 
-    // Listen for notifications from the front‑end.
     socketNotificationReceived: function(notification, payload) {
         if (notification === "WATCHMAN_DATA_REQUEST") {
-            this.getWatchManData(payload);
+            this.updateLatestLevel(payload);
         }
-    },
-
-    // Main function: authenticate (if needed) then fetch sensor data.
-    getWatchManData: function(config) {
-        var self = this;
-        if (!this.token) {
-            this.login(config, function(err) {
-                if (err) {
-                    self.sendSocketNotification("WATCHMAN_ERROR", "Login failed: " + err);
-                } else {
-                    self.fetchSensorData(config);
-                }
-            });
-        } else {
-            this.fetchSensorData(config);
-        }
-    },
-
-    // Log in to the Kingspan Connect service.
-    login: function(config, callback) {
-        var self = this;
-        var loginEndpoint = config.apiBaseUrl + "/login";
-        var postData = JSON.stringify({
-            username: config.username,
-            password: config.password
-        });
-
-        var options = {
-            method: "POST",
-            headers: {
-                "Content-Type": "application/json",
-                "Content-Length": Buffer.byteLength(postData)
-            }
-        };
-
-        var req = https.request(loginEndpoint, options, function(res) {
-            var data = "";
-            res.on("data", function(chunk) {
-                data += chunk;
-            });
-            res.on("end", function() {
-                try {
-                    var response = JSON.parse(data);
-                    console.log("Login response:", response);  // Logging the raw login response.
-                    if (response.token) {
-                        self.token = response.token;
-                        // Optionally store expiry info if provided:
-                        // self.tokenExpiry = response.expires_in;
-                        callback(null);
-                    } else {
-                        callback("No token received. Response: " + data);
-                    }
-                } catch (e) {
-                    callback("Invalid JSON response: " + e);
-                }
-            });
-        });
-
-        req.on("error", function(err) {
-            callback(err);
-        });
-
-        req.write(postData);
-        req.end();
-    },
-
-    // Fetch sensor (tank) data from the API.
-    fetchSensorData: function(config) {
-        var self = this;
-        var sensorEndpoint = config.apiBaseUrl + "/sensit";
-
-        var options = {
-            method: "GET",
-            headers: {
-                "Authorization": "Bearer " + this.token,
-                "Content-Type": "application/json"
-            }
-        };
-
-        var req = https.request(sensorEndpoint, options, function(res) {
-            var data = "";
-            res.on("data", function(chunk) {
-                data += chunk;
-            });
-            res.on("end", function() {
-                try {
-                    var response = JSON.parse(data);
-                    console.log("Sensor API response:", response);  // Logging the raw sensor response.
-
-                    // Adjust these keys based on the actual API response structure.
-                    var tankPercentage = response.tankPercentage || "N/A";
-                    var lastReadingDate = response.lastReadingDate || "N/A";
-
-                    var sensorData = {
-                        lastReading: tankPercentage + (tankPercentage !== "N/A" ? "%" : ""),
-                        lastReadingDate: lastReadingDate !== "N/A" ? new Date(lastReadingDate).toLocaleString() : "N/A"
-                    };
-
-                    self.sendSocketNotification("WATCHMAN_DATA_RESPONSE", sensorData);
-                } catch (e) {
-                    self.sendSocketNotification("WATCHMAN_ERROR", "Error parsing sensor data: " + e);
-                }
-            });
-        });
-
-        req.on("error", function(err) {
-            self.sendSocketNotification("WATCHMAN_ERROR", "Error fetching sensor data: " + err);
-        });
-
-        req.end();
     }
 });
