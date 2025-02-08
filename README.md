@@ -51,10 +51,7 @@ A MagicMirror² module that integrates with the Kingspan WatchMan SENSiT service
    ```bash
    nano ~/MagicMirror/config/config.js
    ```
-   or on Windows:
-   ```bash
-   notepad C:\MagicMirror\config\config.js
-   ```
+
    Then add the following entry to the `modules` array:
    ```js
    {
