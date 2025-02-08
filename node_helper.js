@@ -6,8 +6,7 @@ module.exports = NodeHelper.create({
     tokenExpiry: null,   // (Optional) Token expiry information.
 
     start: function() {
-        console.log("Starting node helper for module: " + this.name);
-        Log.info("MMM-WatchManSensit starting...");
+        console.log("MMM-WatchManSensit NodeHelper starting...");
     },
 
     // Listen for notifications from the front‑end.
@@ -102,9 +101,9 @@ module.exports = NodeHelper.create({
             res.on("end", function() {
                 try {
                     var response = JSON.parse(data);
-                    console.log("Sensor API response:", response);  // Logging the raw sensor data.
-                    
-                    // Adjust these keys based on your actual API response structure.
+                    console.log("Sensor API response:", response);  // Logging the raw sensor response.
+
+                    // Adjust these keys based on the actual API response structure.
                     var tankPercentage = response.tankPercentage || "N/A";
                     var lastReadingDate = response.lastReadingDate || "N/A";
 
