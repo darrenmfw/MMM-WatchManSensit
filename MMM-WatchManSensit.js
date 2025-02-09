@@ -3,22 +3,20 @@ Module.register("MMM-WatchManSensit", {
     // Default configuration options.
     defaults: {
         updateInterval: 3600000,   // Update every 1 hour.
-        serialNumber: "12345678",  // Example serial number (for backward compatibility; not used when using multi-tank configuration).
-        password: "Password1!",    // Example password.
+        password: "Password1!",    // Shared password for all tanks.
         culture: "en",             // Culture/language parameter.
-        // For multi-tank support, provide an array of tank configurations.
-        // Each tank should have a serialNumber and a tankName.
+        // Array of tank configurations (up to three tanks)
         tanks: [
             {
-                serialNumber: "12345678",
+                serialNumber: "12345678", // Example serial number.
                 tankName: "Main Tank"
             },
             {
-                serialNumber: "87654321",
+                serialNumber: "87654321", // Example serial number.
                 tankName: "Secondary Tank"
             },
             {
-                serialNumber: "11223344",
+                serialNumber: "11223344", // Example serial number.
                 tankName: "Tertiary Tank"
             }
         ]
@@ -26,7 +24,7 @@ Module.register("MMM-WatchManSensit", {
 
     start: function() {
         Log.info("Starting MMM-WatchManSensit module...");
-        // Initialize the data object as an array.
+        // Initialize dataReceived as an empty array.
         this.dataReceived = [];
         // Request data immediately.
         this.sendSocketNotification("WATCHMAN_DATA_REQUEST", this.config);
@@ -48,8 +46,9 @@ Module.register("MMM-WatchManSensit", {
 
     getDom: function() {
         var wrapper = document.createElement("div");
-        // If no tank data is received, don't display anything.
+        // If no tank data is received, display a placeholder message.
         if (!this.dataReceived || this.dataReceived.length === 0) {
+            wrapper.innerHTML = "No tank data available.";
             return wrapper;
         }
         
@@ -57,10 +56,10 @@ Module.register("MMM-WatchManSensit", {
         var labelStyle = "color: grey; margin-right: 5px;";
         var defaultInfoStyle = "color: white;";
         
-        // Iterate over each tank and create a block.
+        // Iterate over each tank and create a display block if valid.
         this.dataReceived.forEach(function(tank) {
-            // If there's no valid data for a tank, skip it.
-            if (!tank.fillLevel || tank.fillLevel === "N/A") {
+            // Skip tanks that have an error or missing fillLevel.
+            if (tank.error || !tank.fillLevel || tank.fillLevel === "N/A") {
                 return;
             }
             
@@ -93,7 +92,7 @@ Module.register("MMM-WatchManSensit", {
             fillDiv.appendChild(fillInfo);
             tankWrapper.appendChild(fillDiv);
             
-            // Last Reading (labeled "Last reading:"; red if > 48 hours old)
+            // Last Reading (red if more than 48 hours old)
             var lastDiv = document.createElement("div");
             var lastLabel = document.createElement("span");
             lastLabel.innerHTML = "Last reading: ";
@@ -124,7 +123,8 @@ Module.register("MMM-WatchManSensit", {
             if (tank.rawRunOutDate && tank.rawRunOutDate !== "N/A") {
                 var runOutDateObj = new Date(tank.rawRunOutDate);
                 var now = new Date();
-                if ((runOutDateObj - now) <= 4 * 7 * 24 * 3600 * 1000) { // Within 4 weeks
+                // If the run out date is within 4 weeks (28 days) from now, mark it red.
+                if ((runOutDateObj - now) <= 28 * 24 * 3600 * 1000) {
                     expectedStyle = "color: red;";
                 }
             }
