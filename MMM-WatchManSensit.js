@@ -15,7 +15,8 @@ Module.register("MMM-WatchManSensit", {
         this.dataReceived = {
             fillLevel: "N/A",
             lastReadingDate: "N/A",
-            runOutDate: "N/A"
+            runOutDate: "N/A",
+            rawRunOutDate: "N/A"
         };
         // Request data immediately.
         this.sendSocketNotification("WATCHMAN_DATA_REQUEST", this.config);
@@ -38,7 +39,7 @@ Module.register("MMM-WatchManSensit", {
     getDom: function() {
         var wrapper = document.createElement("div");
 
-        // Define inline styles for labels and the default info.
+        // Define inline styles for labels and default info.
         var labelStyle = "color: grey; margin-right: 5px;";
         var defaultInfoStyle = "color: white;";
 
@@ -54,7 +55,7 @@ Module.register("MMM-WatchManSensit", {
         tankDiv.appendChild(tankInfo);
         wrapper.appendChild(tankDiv);
 
-        // Fill level
+        // Fill Level
         var fillDiv = document.createElement("div");
         var fillLabel = document.createElement("span");
         fillLabel.innerHTML = "Fill level: ";
@@ -66,42 +67,45 @@ Module.register("MMM-WatchManSensit", {
         fillDiv.appendChild(fillInfo);
         wrapper.appendChild(fillDiv);
 
-        // Last reading (labeled "Last reading:"; red if > 48 hours old)
+        // Last Reading (labeled "Last reading:")
         var lastDiv = document.createElement("div");
         var lastLabel = document.createElement("span");
         lastLabel.innerHTML = "Last reading: ";
         lastLabel.style.cssText = labelStyle;
         var lastInfo = document.createElement("span");
         lastInfo.innerHTML = this.dataReceived.lastReadingDate;
-        var lastReadingInfoStyle = defaultInfoStyle; // default white
+        // Set last reading red if it is more than 48 hours old.
+        var lastReadingStyle = defaultInfoStyle;
         if (this.dataReceived.lastReadingDate && this.dataReceived.lastReadingDate !== "N/A") {
             var readingDateObj = new Date(this.dataReceived.lastReadingDate);
             var now = new Date();
-            if ((now - readingDateObj) > 48 * 3600 * 1000) { // more than 48 hours old
-                lastReadingInfoStyle = "color: red;";
+            if ((now - readingDateObj) > 48 * 3600 * 1000) {
+                lastReadingStyle = "color: red;";
             }
         }
-        lastInfo.style.cssText = lastReadingInfoStyle;
+        lastInfo.style.cssText = lastReadingStyle;
         lastDiv.appendChild(lastLabel);
         lastDiv.appendChild(lastInfo);
         wrapper.appendChild(lastDiv);
 
-        // Expected empty (labeled "Expected empty:"; red if within 4 weeks)
+        // Expected empty (labeled "Expected empty:")
         var expectedDiv = document.createElement("div");
         var expectedLabel = document.createElement("span");
         expectedLabel.innerHTML = "Expected empty: ";
         expectedLabel.style.cssText = labelStyle;
         var expectedInfo = document.createElement("span");
         expectedInfo.innerHTML = this.dataReceived.runOutDate;
-        var expectedEmptyInfoStyle = defaultInfoStyle; // default white
-        if (this.dataReceived.runOutDate && this.dataReceived.runOutDate !== "N/A") {
-            var runOutDateObj = new Date(this.dataReceived.runOutDate);
+        // Use the raw runOutDate for comparison.
+        var expectedEmptyStyle = defaultInfoStyle;
+        if (this.dataReceived.rawRunOutDate && this.dataReceived.rawRunOutDate !== "N/A") {
+            var runOutDateObj = new Date(this.dataReceived.rawRunOutDate);
             var now = new Date();
-            if ((runOutDateObj - now) <= 4 * 7 * 24 * 3600 * 1000) { // within 4 weeks
-                expectedEmptyInfoStyle = "color: red;";
+            // If the run out date is within 4 weeks from now, mark it red.
+            if ((runOutDateObj - now) <= 4 * 7 * 24 * 3600 * 1000) {
+                expectedEmptyStyle = "color: red;";
             }
         }
-        expectedInfo.style.cssText = expectedEmptyInfoStyle;
+        expectedInfo.style.cssText = expectedEmptyStyle;
         expectedDiv.appendChild(expectedLabel);
         expectedDiv.appendChild(expectedInfo);
         wrapper.appendChild(expectedDiv);
