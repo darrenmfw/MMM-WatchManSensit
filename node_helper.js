@@ -67,22 +67,22 @@ module.exports = NodeHelper.create({
                                 var readingDate = levelElement.ReadingDate;
                                 var runOutDate = levelElement.RunOutDate;
                                 
-                                // Format the reading date without seconds.
+                                // Format the reading date with 2-digit year (removing seconds)
                                 var d = new Date(readingDate);
                                 var formattedReadingDate = d.toLocaleString(undefined, {
-                                    year: 'numeric',
+                                    year: '2-digit',
                                     month: '2-digit',
                                     day: '2-digit',
                                     hour: '2-digit',
                                     minute: '2-digit'
                                 });
                                 
-                                // Format the run out date as date only.
+                                // Format the run out date as date only with 2-digit year.
                                 var formattedRunOutDate = "N/A";
                                 if (runOutDate && runOutDate !== "0001-01-01T00:00:00") {
                                     var dRun = new Date(runOutDate);
                                     formattedRunOutDate = dRun.toLocaleDateString(undefined, {
-                                        year: 'numeric',
+                                        year: '2-digit',
                                         month: '2-digit',
                                         day: '2-digit'
                                     });
@@ -105,7 +105,7 @@ module.exports = NodeHelper.create({
                                 if (fallbackDate !== "N/A" && fallbackDate !== "0001-01-01T00:00:00") {
                                     var dFallback = new Date(fallbackDate);
                                     formattedFallbackDate = dFallback.toLocaleString(undefined, {
-                                        year: 'numeric',
+                                        year: '2-digit',
                                         month: '2-digit',
                                         day: '2-digit',
                                         hour: '2-digit',
@@ -117,7 +117,7 @@ module.exports = NodeHelper.create({
                                 if (fallbackRunOut !== "N/A" && fallbackRunOut !== "0001-01-01T00:00:00") {
                                     var dFallbackRun = new Date(fallbackRunOut);
                                     formattedFallbackRunOut = dFallbackRun.toLocaleDateString(undefined, {
-                                        year: 'numeric',
+                                        year: '2-digit',
                                         month: '2-digit',
                                         day: '2-digit'
                                     });
