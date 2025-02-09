@@ -5,7 +5,12 @@ var xml2js = require("xml2js");
 module.exports = NodeHelper.create({
     updateLatestLevel: function(config) {
         var self = this;
-        // Construct the SOAP XML envelope for the "Get Latest Level" call.
+        // Construct the SOAP XML envelope using the serialNumber.
+        // User ID is "BOX" concatenated with the serialNumber,
+        // and signalman number is the serialNumber itself.
+        var userId = "BOX" + config.serialNumber;
+        var signalmanNo = config.serialNumber;
+        
         var soapEnvelope =
           '<?xml version="1.0" encoding="utf-8"?>' +
           '<soap:Envelope xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" ' +
@@ -13,9 +18,9 @@ module.exports = NodeHelper.create({
           'xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/">' +
             '<soap:Body>' +
               '<SoapMobileAPPGetLatestLevel_v3 xmlns="http://mobileapp/">' +
-                '<userid>' + config.userid + '</userid>' +
+                '<userid>' + userId + '</userid>' +
                 '<password>' + config.password + '</password>' +
-                '<signalmanno>' + config.signalmanno + '</signalmanno>' +
+                '<signalmanno>' + signalmanNo + '</signalmanno>' +
                 '<culture>' + config.culture + '</culture>' +
               '</SoapMobileAPPGetLatestLevel_v3>' +
             '</soap:Body>' +
@@ -39,10 +44,11 @@ module.exports = NodeHelper.create({
             });
             res.on("end", function() {
                 console.log("Received SOAP response:", data);
-                // Use tagNameProcessors to strip namespace prefixes.
+                // Use xml2js to parse the XML response, stripping namespace prefixes.
                 var parser = new xml2js.Parser({
                     explicitArray: false,
-                    tagNameProcessors: [xml2js.processors.stripPrefix]
+                    tagNameProcessors: [xml2js.processors.stripPrefix],
+                    ignoreAttrs: true
                 });
                 parser.parseString(data, function(err, result) {
                     if (err) {
@@ -50,15 +56,16 @@ module.exports = NodeHelper.create({
                     } else {
                         console.log("Parsed XML object:", result);
                         try {
-                            // With prefixes stripped, the structure should be easier to navigate.
+                            // Navigate the parsed XML structure.
                             var envelope = result.Envelope;
                             var body = envelope.Body;
                             var response = body.SoapMobileAPPGetLatestLevel_v3Response;
                             var resultData = response.SoapMobileAPPGetLatestLevel_v3Result;
+                            console.log("Result Data Keys:", Object.keys(resultData));
                             
-                            // Extract Level data.
+                            // Extract data from the <Level> element.
                             var levelElement = resultData.Level;
-                            if (levelElement && levelElement.LevelPercentage && parseFloat(levelElement.LevelPercentage) > 0) {
+                            if (levelElement && levelElement.LevelPercentage) {
                                 var levelPercentage = levelElement.LevelPercentage;
                                 var readingDate = levelElement.ReadingDate;
                                 var sensorData = {
@@ -67,7 +74,7 @@ module.exports = NodeHelper.create({
                                 };
                                 self.sendSocketNotification("WATCHMAN_DATA_RESPONSE", sensorData);
                             } else {
-                                // Fallback: if Level data is missing or invalid, use SmartServReading (though these are usually defaults).
+                                // Fallback to SmartServReading if Level is missing or invalid.
                                 var smartReading = resultData.SmartServReading;
                                 var fallbackPercentage = smartReading ? smartReading.LevelPercentage : "N/A";
                                 var fallbackDate = smartReading ? smartReading.ReadingDate : "N/A";
