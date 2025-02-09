@@ -10,7 +10,7 @@ A MagicMirror² module that integrates with the Kingspan WatchMan SENSiT service
 - **Live Data Retrieval:**  
   Authenticates with the Connect Sensor service using SOAP and retrieves the latest tank level data.
 - **Display:**  
-  Shows the latest tank level (percentage) and the reading timestamp.
+  Shows the fill level, the last reading timestamp, and the expected empty date.
 - **Configurable:**  
   Easily update the credentials and SOAP parameters via the module configuration.
 
@@ -47,22 +47,17 @@ A MagicMirror² module that integrates with the Kingspan WatchMan SENSiT service
 
 3. **Configure the Module**
 
-   Open your MagicMirror configuration file (`config/config.js`) in your favorite text editor. For example, on Linux or macOS:
-   ```bash
-   nano ~/MagicMirror/config/config.js
-   ```
-
-   Then add the following entry to the `modules` array:
+   Open your MagicMirror configuration file (`config/config.js`) in your favorite text editor and add the following entry to the `modules` array:
    ```js
    {
      module: "MMM-WatchManSensit",
      position: "top_right", // Change this to your preferred location.
      config: {
        updateInterval: 60000, // Update every 60 seconds.
-       userid: "", // Your user ID (as observed in the SOAP requests eg. BOX12345678).
-       password: "", // Your password.
-       signalmanno: "", // Device identifier (signalman number eg. 12345678).
-       culture: "en" // Culture/language parameter.
+       serialNumber: "12345678", // Example serial number.
+       password: "Password1!",   // Example password.
+       culture: "en",            // Culture/language parameter.
+       tankName: "My Tank"       // Display name for your tank.
      }
    }
    ```
@@ -78,28 +73,21 @@ A MagicMirror² module that integrates with the Kingspan WatchMan SENSiT service
 ## How It Works
 
 1. **SOAP Request:**  
-   The NodeHelper constructs a SOAP XML envelope with the provided configuration (userid, password, signalmanno, culture) and sends a POST request to:
+   The NodeHelper constructs a SOAP XML envelope using the provided configuration. The user ID is built as "BOX" concatenated with the serial number, and the signalman number is the serial number itself. The request is sent as a POST to:
    ```
    https://www.connectsensor.com/soap/MobileApp.asmx
    ```
    with the SOAPAction `"http://mobileapp/SoapMobileAPPGetLatestLevel_v3"`.
 
 2. **XML Response Parsing:**  
-   The response (an XML SOAP envelope) is parsed using the xml2js library. The module navigates the XML structure to extract key data such as `<LevelPercentage>` and `<ReadingDate>` from the `<Level>` element.
+   The response (an XML SOAP envelope) is parsed using the xml2js library with namespace prefixes stripped. The module navigates the XML structure to extract key data such as `<LevelPercentage>`, `<ReadingDate>`, and `<RunOutDate>` from the `<Level>` element. The reading date is formatted without seconds, and the run out date is formatted to display only the date.
 
 3. **Display:**  
-   The front-end module receives the parsed data via a socket notification and updates the display to show the latest tank reading and the timestamp.
-
-## Troubleshooting
-
-- **DNS/Connectivity Issues:**  
-  If you get errors such as "could not resolve host," ensure that your Raspberry Pi has proper DNS configuration. Try using public DNS servers (e.g., 8.8.8.8 or 1.1.1.1).
-
-- **SOAP/Parsing Errors:**  
-  If the XML response structure changes, you might need to update the NodeHelper XML parsing code to correctly extract the desired values.
-
-- **Multi-Tank Support:**  
-  If you have multiple tanks, check the structure of the SOAP response to determine how multiple `<Level>` elements are returned. You may then modify the NodeHelper to iterate over an array of tanks and update the front-end accordingly.
+   The front-end module receives the parsed data via a socket notification and updates the display to show:
+   - The tank name (from configuration) at the top.
+   - "Fill level:" followed by the percentage (e.g., "75%").
+   - "Last reading:" with the formatted reading date.
+   - "Expected empty:" with the formatted run out date.
 
 ## Repository
 
@@ -109,7 +97,3 @@ The source code for this module is hosted on GitHub:
 ## License
 
 This project is licensed under the MIT License.
-
-## Acknowledgements
-
-This module was inspired by community efforts to integrate the Kingspan WatchMan SENSiT device with Home Assistant, specifically the [ha-kingspan-watchman-sensit](https://github.com/masaccio/ha-kingspan-watchman-sensit) project.
