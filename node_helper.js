@@ -68,9 +68,8 @@ module.exports = NodeHelper.create({
                                 var response = body.SoapMobileAPPGetLatestLevel_v3Response;
                                 var resultData = response.SoapMobileAPPGetLatestLevel_v3Result;
                                 var levelElement = resultData.Level;
-                                
-                                // Only accept data if LevelPercentage is present and > 0.
-                                if (levelElement && levelElement.LevelPercentage && parseFloat(levelElement.LevelPercentage) > 0) {
+                                // Consider data valid if LevelPercentage exists and is not exactly -1.
+                                if (levelElement && levelElement.LevelPercentage && parseFloat(levelElement.LevelPercentage) !== -1) {
                                     var fillLevel = levelElement.LevelPercentage;
                                     var readingDate = levelElement.ReadingDate;
                                     var runOutDate = levelElement.RunOutDate;
@@ -112,7 +111,7 @@ module.exports = NodeHelper.create({
                         }
                         completedRequests++;
                         if (completedRequests === totalRequests) {
-                            // All requests are complete: send only valid results.
+                            // All requests complete: send only valid results.
                             self.sendSocketNotification("WATCHMAN_DATA_RESPONSE", validResults);
                         }
                     });
