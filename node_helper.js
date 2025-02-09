@@ -68,19 +68,39 @@ module.exports = NodeHelper.create({
                             if (levelElement && levelElement.LevelPercentage) {
                                 var levelPercentage = levelElement.LevelPercentage;
                                 var readingDate = levelElement.ReadingDate;
+                                // Format the date without seconds.
+                                var d = new Date(readingDate);
+                                var formattedDate = d.toLocaleString(undefined, {
+                                    year: 'numeric', 
+                                    month: '2-digit', 
+                                    day: '2-digit', 
+                                    hour: '2-digit', 
+                                    minute: '2-digit'
+                                });
                                 var sensorData = {
                                     lastReading: levelPercentage + "%",
-                                    lastReadingDate: new Date(readingDate).toLocaleString()
+                                    lastReadingDate: formattedDate
                                 };
                                 self.sendSocketNotification("WATCHMAN_DATA_RESPONSE", sensorData);
                             } else {
-                                // Fallback to SmartServReading if Level is missing or invalid.
+                                // Fallback: if Level data is missing or invalid, use SmartServReading.
                                 var smartReading = resultData.SmartServReading;
                                 var fallbackPercentage = smartReading ? smartReading.LevelPercentage : "N/A";
                                 var fallbackDate = smartReading ? smartReading.ReadingDate : "N/A";
+                                var formattedDateFallback = "N/A";
+                                if (fallbackDate !== "N/A") {
+                                    var dFallback = new Date(fallbackDate);
+                                    formattedDateFallback = dFallback.toLocaleString(undefined, {
+                                        year: 'numeric', 
+                                        month: '2-digit', 
+                                        day: '2-digit', 
+                                        hour: '2-digit', 
+                                        minute: '2-digit'
+                                    });
+                                }
                                 var sensorDataFallback = {
                                     lastReading: fallbackPercentage + (fallbackPercentage !== "N/A" ? "%" : ""),
-                                    lastReadingDate: fallbackDate !== "N/A" ? new Date(fallbackDate).toLocaleString() : "N/A"
+                                    lastReadingDate: formattedDateFallback
                                 };
                                 self.sendSocketNotification("WATCHMAN_DATA_RESPONSE", sensorDataFallback);
                             }
