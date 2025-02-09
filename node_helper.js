@@ -10,17 +10,33 @@ module.exports = NodeHelper.create({
             self.sendSocketNotification("WATCHMAN_DATA_RESPONSE", []);
             return;
         }
-        // Filter out any tanks with a blank or missing serial number.
+        // Filter out any tanks with a blank or missing serialNumber.
         var validTanks = tanks.filter(function(tank) {
             return tank.serialNumber && tank.serialNumber.trim() !== "";
         });
+        // Ensure we have at least one valid tank to use for the user id.
+        if (validTanks.length === 0) {
+            self.sendSocketNotification("WATCHMAN_DATA_RESPONSE", []);
+            return;
+        }
         var totalRequests = Math.min(validTanks.length, 3);
         var results = [];
         var completedRequests = 0;
+        // Use the first tank's serial number for the user id for all tanks.
+        var primaryUserSerial = validTanks[0].serialNumber;
 
         validTanks.slice(0, 3).forEach(function(tankConfig, index) {
-            var userId = "BOX" + tankConfig.serialNumber;
-            var signalmanNo = tankConfig.serialNumber;
+            var userId, signalmanNo;
+            if (index === 0) {
+                // For the first tank, both user id and signalman come from its own serial.
+                userId = "BOX" + tankConfig.serialNumber;
+                signalmanNo = tankConfig.serialNumber;
+            } else {
+                // For tanks 2 and 3, use the primary user serial for the user id,
+                // and the tank's own serial for the signalman number.
+                userId = "BOX" + primaryUserSerial;
+                signalmanNo = tankConfig.serialNumber;
+            }
             
             var soapEnvelope =
               '<?xml version="1.0" encoding="utf-8"?>' +
