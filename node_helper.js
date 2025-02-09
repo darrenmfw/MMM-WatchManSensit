@@ -10,7 +10,7 @@ module.exports = NodeHelper.create({
             self.sendSocketNotification("WATCHMAN_DATA_RESPONSE", []);
             return;
         }
-        // Filter out any tanks with a blank or missing serial number.
+        // Filter out tanks with a blank or missing serial number.
         var validTanks = tanks.filter(function(tank) {
             return tank.serialNumber && tank.serialNumber.trim() !== "";
         });
@@ -31,7 +31,7 @@ module.exports = NodeHelper.create({
                 userId = "BOX" + tankConfig.serialNumber;
                 signalmanNo = tankConfig.serialNumber;
             } else {
-                // For tanks 2 and 3, use primaryUserSerial for the user ID and their own serial for signalman.
+                // For tanks 2 and 3, use primaryUserSerial for user ID and the tank’s own serial for signalman.
                 userId = "BOX" + primaryUserSerial;
                 signalmanNo = tankConfig.serialNumber;
             }
@@ -122,16 +122,28 @@ module.exports = NodeHelper.create({
                                         });
                                     }
                                     
+                                    // Add the display flags from the tank config.
                                     results[index] = {
                                         tankName: tankConfig.tankName,
                                         fillLevel: fillLevel + "%",
                                         litresRemaining: litres + (litres !== "N/A" ? " L" : ""),
                                         lastReadingDate: formattedReadingDate,
                                         runOutDate: formattedRunOutDate,
-                                        rawRunOutDate: runOutDate
+                                        rawRunOutDate: runOutDate,
+                                        displayFillLevel: (tankConfig.displayFillLevel !== false),
+                                        displayLitresRemaining: (tankConfig.displayLitresRemaining !== false),
+                                        displayLastReading: (tankConfig.displayLastReading !== false),
+                                        displayExpectedEmpty: (tankConfig.displayExpectedEmpty !== false)
                                     };
                                 } else {
-                                    results[index] = { tankName: tankConfig.tankName, error: "No valid level data" };
+                                    results[index] = {
+                                        tankName: tankConfig.tankName,
+                                        error: "No valid level data",
+                                        displayFillLevel: (tankConfig.displayFillLevel !== false),
+                                        displayLitresRemaining: (tankConfig.displayLitresRemaining !== false),
+                                        displayLastReading: (tankConfig.displayLastReading !== false),
+                                        displayExpectedEmpty: (tankConfig.displayExpectedEmpty !== false)
+                                    };
                                 }
                             } catch (ex) {
                                 results[index] = { tankName: tankConfig.tankName, error: "Error extracting data: " + ex };
