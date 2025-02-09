@@ -1,26 +1,30 @@
-# MMM-WatchManSensit v1.0.1 Release Notes
+# MMM-WatchManSensit v1.1.0
 
 **Release Date:** February 2025
 
 ## Overview
-MMM-WatchManSensit v1.0.1 is a minor update to the stable v1.0.0 release. In this version, the only change is that the default update interval has been increased from 1 minute (60000 milliseconds) to 1 hour (3600000 milliseconds). This change helps reduce the frequency of API calls and conserves system resources while maintaining all existing functionality.
+MMM-WatchManSensit v1.1.0 introduces multi‑tank support for MagicMirror². In this release, you can configure up to three tanks. Each tank is defined by a single serial number and a tank name. The module uses the serial number of the first tank (Tank 1) to construct the user ID (by prepending "BOX") for all SOAP requests, while each tank’s own serial number is used as its signalman number. **IMPORTANT:** The first tank's serial number MUST be the one from the first tank set up in the app.
 
-## New Feature
-- **Default Update Interval Changed:**
-  - **Previous Default:** 60000 milliseconds (1 minute)
-  - **New Default:** 3600000 milliseconds (1 hour)
+The module communicates with the Kingspan Watchman SENSiT service via SOAP requests to retrieve live data, including fill level, last reading timestamp, and expected empty (run-out) date. The display shows these values with conditional formatting:
+- Labels are grey.
+- Data values are white, unless:
+  - The "Last reading" is over 48 hours old (displayed in red).
+  - The "Expected empty" date is within 4 weeks (displayed in red).
 
-## Features
-- **SOAP-Based Communication:**  
-  Authenticates with the Connect Sensor service using SOAP and retrieves live tank data.
-- **Live Data Display:**  
-  Displays the fill level, the last reading timestamp (labeled as "Last reading:" and formatted without seconds), and the expected empty date (labeled as "Expected empty:" and showing only the date with a 2-digit year).
-- **Customizable Interface:**  
-  The module allows you to set a custom tank name (via the `tankName` setting) which appears at the top of the display. All labels appear in grey while the dynamic data (values) are shown in white.
-- **Robust XML Parsing:**  
-  Utilizes the `xml2js` library with namespace stripping to reliably parse SOAP XML responses.
+## New Features
+- **Multi-Tank Support:**  
+  - Configure up to three tanks using a single serial number and tank name for each.
+  - The module uses the first tank’s serial number (Tank 1) to construct the user ID ("BOX" + Tank 1 serial) for all SOAP requests.
+  - Each tank’s own serial number is used as its signalman number.
+- **SOAP-Based Data Retrieval:**  
+  - Retrieves data (fill level, last reading, expected empty date) for each tank via SOAP requests.
+- **Conditional UI Display:**  
+  - Displays an error if a tank returns invalid data.
+  - Tanks with a blank serial number are omitted.
+- **Customizable Display:**  
+  - Labels are rendered in grey and data values in white, with conditional red coloring if the "Last reading" is over 48 hours old or if the "Expected empty" date is within 4 weeks.
 - **Configurable Update Interval:**  
-  The module periodically updates the data at the configured interval. The default has been updated to 1 hour in this release.
+  - The module updates the data at a user-defined interval; the default is now 1 hour.
 
 ## Requirements
 - [MagicMirror²](https://magicmirror.builders/)
@@ -47,21 +51,37 @@ MMM-WatchManSensit v1.0.1 is a minor update to the stable v1.0.0 release. In thi
    cd ~/MagicMirror/modules/MMM-WatchManSensit
    npm install xml2js
    ```
-   This installs the [xml2js](https://www.npmjs.com/package/xml2js) library, which is used to parse SOAP XML responses.
+   This installs the [xml2js](https://www.npmjs.com/package/xml2js) library used for parsing SOAP XML responses.
 
 3. **Configure the Module**
 
    Open your MagicMirror configuration file (`config/config.js`) in your favorite text editor and add the following entry to the `modules` array:
+
    ```js
    {
      module: "MMM-WatchManSensit",
      position: "top_right", // Change this to your preferred location.
      config: {
        updateInterval: 3600000, // Update every 1 hour.
-       serialNumber: "12345678", // Example serial number.
-       password: "Password1!",   // Example password.
-       culture: "en",            // Culture/language parameter.
-       tankName: "My Tank"       // Display name for your tank.
+       // Configure each tank below. The first tank's serial number MUST be the one
+       // from the first tank set up in the app. That serial will be used to build the
+       // user ID ("BOX" + first tank's serial) for all SOAP requests.
+       tanks: [
+         {
+           serialNumber: "20026081", // Tank 1 serial (used for both user ID and signalman for Tank 1)
+           tankName: "Main Tank"
+         },
+         {
+           serialNumber: "87654321", // Tank 2 serial (user ID from Tank 1 is used for this tank)
+           tankName: "Secondary Tank"
+         },
+         {
+           serialNumber: "",         // Blank serial; this tank will be omitted.
+           tankName: "Tertiary Tank"
+         }
+       ],
+       password: "Password1!", // Shared password for all tanks.
+       culture: "en"           // Culture/language parameter.
      }
    }
    ```
@@ -72,29 +92,32 @@ MMM-WatchManSensit v1.0.1 is a minor update to the stable v1.0.0 release. In thi
    ```bash
    pm2 restart MagicMirror
    ```
-   Alternatively, restart the MagicMirror service using your usual method.
+   Or restart your MagicMirror service using your usual method.
 
 ## How It Works
 
-1. **SOAP Request:**  
-   The NodeHelper constructs a SOAP XML envelope using the provided configuration. The user ID is built as "BOX" concatenated with the serial number, and the signalman number is the serial number itself. The SOAP request is sent as a POST to:
+1. **SOAP Request Construction:**  
+   For each tank, the module constructs a SOAP request:
+   - For **Tank 1**, the `<userid>` is built from its own serial (i.e., `"BOX" + Tank1.serialNumber`) and `<signalmanno>` is its serial.
+   - For **Tanks 2 and 3**, the `<userid>` is the same as Tank 1's (i.e., `"BOX" + Tank1.serialNumber`), while `<signalmanno>` is each tank's own serial number.
+   
+2. **Data Retrieval & Parsing:**  
+   The module sends SOAP requests to:
    ```
    https://www.connectsensor.com/soap/MobileApp.asmx
    ```
-   with the SOAPAction `"http://mobileapp/SoapMobileAPPGetLatestLevel_v3"`.
-
-2. **XML Response Parsing:**  
-   The response (an XML SOAP envelope) is parsed using the xml2js library with namespace prefixes stripped. The module navigates the XML structure to extract key data such as:
-   - `<LevelPercentage>` for the fill level,
-   - `<ReadingDate>` for the last reading timestamp (formatted without seconds, with a 2-digit year), and
-   - `<RunOutDate>` for the expected empty date (formatted to display only the date with a 2-digit year).
-
+   with the SOAPAction `"http://mobileapp/SoapMobileAPPGetLatestLevel_v3"`. The SOAP response is parsed to extract:
+   - **LevelPercentage:** The fill level.
+   - **ReadingDate:** The last reading timestamp (formatted without seconds, with a 2-digit year).
+   - **RunOutDate:** The expected empty date (formatted as date-only with a 2-digit year).
+   
 3. **Display:**  
-   The front-end module receives the parsed data via a socket notification and updates the display to show:
-   - The tank name (from configuration) at the top,
-   - "Fill level:" followed by the fill level (e.g., "75%"),
-   - "Last reading:" with the formatted reading timestamp, and
-   - "Expected empty:" with the formatted run out date.
+   The front-end module displays a block for each tank with valid data:
+   - The tank name appears at the top.
+   - "Fill level:" shows the fill level (e.g., "85%").
+   - "Last reading:" displays the formatted last reading timestamp in white unless it’s over 48 hours old, in which case it turns red.
+   - "Expected empty:" displays the expected empty date in white unless it is within 4 weeks, in which case it turns red.
+   - Tanks that return invalid data or have a blank serial number are omitted or display an error message.
 
 ## Repository
 
