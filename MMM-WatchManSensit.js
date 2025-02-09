@@ -5,7 +5,6 @@ Module.register("MMM-WatchManSensit", {
         updateInterval: 3600000,   // Update every 1 hour.
         password: "Password1!",    // Shared password for all tanks.
         culture: "en",             // Culture/language parameter.
-        // Array of tank configurations (up to three tanks)
         tanks: [
             {
                 serialNumber: "12345678", // Example serial number for tank 1.
