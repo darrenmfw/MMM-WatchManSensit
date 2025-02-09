@@ -6,15 +6,15 @@ Module.register("MMM-WatchManSensit", {
         culture: "en",             // Culture/language parameter.
         tanks: [
             {
-                serialNumber: "12345678", // Example serial number for tank 1.
+                serialNumber: "20026081", // Tank 1 serial (used for user ID as well)
                 tankName: "Main Tank"
             },
             {
-                serialNumber: "87654321", // Example serial number for tank 2.
+                serialNumber: "87654321", // Tank 2 serial (user ID from tank 1 is used)
                 tankName: "Secondary Tank"
             },
             {
-                serialNumber: "",         // Blank tank config; this one will be skipped.
+                serialNumber: "",         // Blank serial; this tank will be skipped.
                 tankName: "Tertiary Tank"
             }
         ]
@@ -69,7 +69,7 @@ Module.register("MMM-WatchManSensit", {
             nameDiv.appendChild(nameInfo);
             tankWrapper.appendChild(nameDiv);
             
-            // If there's an error, display it.
+            // If error, display error message.
             if (tank.error) {
                 var errorDiv = document.createElement("div");
                 errorDiv.innerHTML = "Error: " + tank.error;
@@ -88,7 +88,7 @@ Module.register("MMM-WatchManSensit", {
                 fillDiv.appendChild(fillInfo);
                 tankWrapper.appendChild(fillDiv);
                 
-                // Last Reading (red if more than 48 hours old)
+                // Last Reading (red if > 48 hours old)
                 var lastDiv = document.createElement("div");
                 var lastLabel = document.createElement("span");
                 lastLabel.innerHTML = "Last reading: ";
