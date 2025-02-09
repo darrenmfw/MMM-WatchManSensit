@@ -10,7 +10,7 @@ module.exports = NodeHelper.create({
             self.sendSocketNotification("WATCHMAN_DATA_RESPONSE", []);
             return;
         }
-        // Filter out any tanks with a blank serial number.
+        // Filter out any tanks with a blank or missing serial number.
         var validTanks = tanks.filter(function(tank) {
             return tank.serialNumber && tank.serialNumber.trim() !== "";
         });
@@ -65,7 +65,6 @@ module.exports = NodeHelper.create({
                             results[index] = { tankName: tankConfig.tankName, error: "XML parse error: " + err };
                         } else {
                             try {
-                                // Extra error checking:
                                 if (!result.Envelope) {
                                     throw new Error("Missing Envelope");
                                 }
@@ -83,42 +82,38 @@ module.exports = NodeHelper.create({
                                 }
                                 
                                 var levelElement = resultData.Level;
-                                if (levelElement && levelElement.LevelPercentage) {
-                                    var percentage = parseFloat(levelElement.LevelPercentage);
-                                    if (percentage === -1) {
-                                        results[index] = { tankName: tankConfig.tankName, error: "No valid level data" };
-                                    } else {
-                                        var fillLevel = levelElement.LevelPercentage;
-                                        var readingDate = levelElement.ReadingDate;
-                                        var runOutDate = levelElement.RunOutDate;
-                                        
-                                        var d = new Date(readingDate);
-                                        var formattedReadingDate = d.toLocaleString("en-GB", {
+                                // Check that LevelPercentage exists and, after trimming, is not equal to "-1"
+                                if (levelElement && levelElement.LevelPercentage && parseFloat(levelElement.LevelPercentage.trim()) !== -1) {
+                                    var fillLevel = levelElement.LevelPercentage;
+                                    var readingDate = levelElement.ReadingDate;
+                                    var runOutDate = levelElement.RunOutDate;
+                                    
+                                    var d = new Date(readingDate);
+                                    var formattedReadingDate = d.toLocaleString("en-GB", {
+                                        year: '2-digit',
+                                        month: '2-digit',
+                                        day: '2-digit',
+                                        hour: '2-digit',
+                                        minute: '2-digit'
+                                    });
+                                    
+                                    var formattedRunOutDate = "";
+                                    if (runOutDate && runOutDate !== "0001-01-01T00:00:00") {
+                                        var dRun = new Date(runOutDate);
+                                        formattedRunOutDate = dRun.toLocaleDateString("en-GB", {
                                             year: '2-digit',
                                             month: '2-digit',
-                                            day: '2-digit',
-                                            hour: '2-digit',
-                                            minute: '2-digit'
+                                            day: '2-digit'
                                         });
-                                        
-                                        var formattedRunOutDate = "";
-                                        if (runOutDate && runOutDate !== "0001-01-01T00:00:00") {
-                                            var dRun = new Date(runOutDate);
-                                            formattedRunOutDate = dRun.toLocaleDateString("en-GB", {
-                                                year: '2-digit',
-                                                month: '2-digit',
-                                                day: '2-digit'
-                                            });
-                                        }
-                                        
-                                        results[index] = {
-                                            tankName: tankConfig.tankName,
-                                            fillLevel: fillLevel + "%",
-                                            lastReadingDate: formattedReadingDate,
-                                            runOutDate: formattedRunOutDate,
-                                            rawRunOutDate: runOutDate
-                                        };
                                     }
+                                    
+                                    results[index] = {
+                                        tankName: tankConfig.tankName,
+                                        fillLevel: fillLevel + "%",
+                                        lastReadingDate: formattedReadingDate,
+                                        runOutDate: formattedRunOutDate,
+                                        rawRunOutDate: runOutDate
+                                    };
                                 } else {
                                     results[index] = { tankName: tankConfig.tankName, error: "No valid level data" };
                                 }
