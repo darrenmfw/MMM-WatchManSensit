@@ -63,11 +63,11 @@ module.exports = NodeHelper.create({
                             
                             var levelElement = resultData.Level;
                             if (levelElement && levelElement.LevelPercentage) {
-                                var levelPercentage = levelElement.LevelPercentage;
+                                var fillLevel = levelElement.LevelPercentage;
                                 var readingDate = levelElement.ReadingDate;
                                 var runOutDate = levelElement.RunOutDate;
                                 
-                                // Format reading date without seconds.
+                                // Format the reading date without seconds.
                                 var d = new Date(readingDate);
                                 var formattedReadingDate = d.toLocaleString(undefined, {
                                     year: 'numeric',
@@ -77,21 +77,19 @@ module.exports = NodeHelper.create({
                                     minute: '2-digit'
                                 });
                                 
-                                // Format run out date without seconds.
+                                // Format the run out date as date only.
                                 var formattedRunOutDate = "N/A";
-                                if (runOutDate) {
+                                if (runOutDate && runOutDate !== "0001-01-01T00:00:00") {
                                     var dRun = new Date(runOutDate);
-                                    formattedRunOutDate = dRun.toLocaleString(undefined, {
+                                    formattedRunOutDate = dRun.toLocaleDateString(undefined, {
                                         year: 'numeric',
                                         month: '2-digit',
-                                        day: '2-digit',
-                                        hour: '2-digit',
-                                        minute: '2-digit'
+                                        day: '2-digit'
                                     });
                                 }
                                 
                                 var sensorData = {
-                                    lastReading: levelPercentage + "%",
+                                    fillLevel: fillLevel + "%",
                                     lastReadingDate: formattedReadingDate,
                                     runOutDate: formattedRunOutDate
                                 };
@@ -104,7 +102,7 @@ module.exports = NodeHelper.create({
                                 var fallbackRunOut = smartReading ? smartReading.RunOutDate : "N/A";
                                 
                                 var formattedFallbackDate = "N/A";
-                                if (fallbackDate !== "N/A") {
+                                if (fallbackDate !== "N/A" && fallbackDate !== "0001-01-01T00:00:00") {
                                     var dFallback = new Date(fallbackDate);
                                     formattedFallbackDate = dFallback.toLocaleString(undefined, {
                                         year: 'numeric',
@@ -116,19 +114,17 @@ module.exports = NodeHelper.create({
                                 }
                                 
                                 var formattedFallbackRunOut = "N/A";
-                                if (fallbackRunOut !== "N/A") {
+                                if (fallbackRunOut !== "N/A" && fallbackRunOut !== "0001-01-01T00:00:00") {
                                     var dFallbackRun = new Date(fallbackRunOut);
-                                    formattedFallbackRunOut = dFallbackRun.toLocaleString(undefined, {
+                                    formattedFallbackRunOut = dFallbackRun.toLocaleDateString(undefined, {
                                         year: 'numeric',
                                         month: '2-digit',
-                                        day: '2-digit',
-                                        hour: '2-digit',
-                                        minute: '2-digit'
+                                        day: '2-digit'
                                     });
                                 }
                                 
                                 var sensorDataFallback = {
-                                    lastReading: fallbackPercentage + (fallbackPercentage !== "N/A" ? "%" : ""),
+                                    fillLevel: fallbackPercentage + (fallbackPercentage !== "N/A" ? "%" : ""),
                                     lastReadingDate: formattedFallbackDate,
                                     runOutDate: formattedFallbackRunOut
                                 };
