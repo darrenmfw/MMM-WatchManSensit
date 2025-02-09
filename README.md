@@ -68,7 +68,7 @@ The module communicates with the Kingspan Watchman SENSiT service via SOAP reque
        // user ID ("BOX" + first tank's serial) for all SOAP requests.
        tanks: [
          {
-           serialNumber: "20026081", // Tank 1 serial (used for both user ID and signalman for Tank 1)
+           serialNumber: "12345678", // Tank 1 serial (used for both user ID and signalman for Tank 1)
            tankName: "Main Tank"
          },
          {
