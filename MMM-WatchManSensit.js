@@ -7,15 +7,28 @@ Module.register("MMM-WatchManSensit", {
         tanks: [
             {
                 serialNumber: "20026081", // Tank 1 serial (used for both user ID and signalman for Tank 1)
-                tankName: "Main Tank"
+                tankName: "Main Tank",
+                // Data line visibility (default true if not set)
+                displayFillLevel: true,
+                displayLitresRemaining: true,
+                displayLastReading: true,
+                displayExpectedEmpty: true
             },
             {
                 serialNumber: "87654321", // Tank 2 serial (user ID from Tank 1 is used for this tank)
-                tankName: "Secondary Tank"
+                tankName: "Secondary Tank",
+                displayFillLevel: true,
+                displayLitresRemaining: true,
+                displayLastReading: true,
+                displayExpectedEmpty: true
             },
             {
                 serialNumber: "",         // Blank serial; this tank will be omitted.
-                tankName: "Tertiary Tank"
+                tankName: "Tertiary Tank",
+                displayFillLevel: true,
+                displayLitresRemaining: true,
+                displayLastReading: true,
+                displayExpectedEmpty: true
             }
         ]
     },
@@ -69,7 +82,7 @@ Module.register("MMM-WatchManSensit", {
             nameDiv.appendChild(nameInfo);
             tankWrapper.appendChild(nameDiv);
             
-            // If there's an error, display it.
+            // If there's an error, display it and skip the rest.
             if (tank.error) {
                 var errorDiv = document.createElement("div");
                 errorDiv.innerHTML = "Error: " + tank.error;
@@ -77,68 +90,76 @@ Module.register("MMM-WatchManSensit", {
                 tankWrapper.appendChild(errorDiv);
             } else {
                 // Fill Level
-                var fillDiv = document.createElement("div");
-                var fillLabel = document.createElement("span");
-                fillLabel.innerHTML = "Fill level: ";
-                fillLabel.style.cssText = labelStyle;
-                var fillInfo = document.createElement("span");
-                fillInfo.innerHTML = tank.fillLevel;
-                fillInfo.style.cssText = defaultInfoStyle;
-                fillDiv.appendChild(fillLabel);
-                fillDiv.appendChild(fillInfo);
-                tankWrapper.appendChild(fillDiv);
+                if (tank.displayFillLevel) {
+                    var fillDiv = document.createElement("div");
+                    var fillLabel = document.createElement("span");
+                    fillLabel.innerHTML = "Fill level: ";
+                    fillLabel.style.cssText = labelStyle;
+                    var fillInfo = document.createElement("span");
+                    fillInfo.innerHTML = tank.fillLevel;
+                    fillInfo.style.cssText = defaultInfoStyle;
+                    fillDiv.appendChild(fillLabel);
+                    fillDiv.appendChild(fillInfo);
+                    tankWrapper.appendChild(fillDiv);
+                }
                 
                 // Litres remaining
-                var litresDiv = document.createElement("div");
-                var litresLabel = document.createElement("span");
-                litresLabel.innerHTML = "Litres remaining: ";
-                litresLabel.style.cssText = labelStyle;
-                var litresInfo = document.createElement("span");
-                litresInfo.innerHTML = tank.litresRemaining;
-                litresInfo.style.cssText = defaultInfoStyle;
-                litresDiv.appendChild(litresLabel);
-                litresDiv.appendChild(litresInfo);
-                tankWrapper.appendChild(litresDiv);
-                
-                // Last Reading (red if > 48 hours old)
-                var lastDiv = document.createElement("div");
-                var lastLabel = document.createElement("span");
-                lastLabel.innerHTML = "Last reading: ";
-                lastLabel.style.cssText = labelStyle;
-                var lastInfo = document.createElement("span");
-                lastInfo.innerHTML = tank.lastReadingDate;
-                var lastReadingStyle = defaultInfoStyle;
-                if (tank.lastReadingDate && tank.lastReadingDate !== "N/A") {
-                    var readingDateObj = new Date(tank.lastReadingDate);
-                    var now = new Date();
-                    if ((now - readingDateObj) > 48 * 3600 * 1000) { // More than 48 hours old
-                        lastReadingStyle = errorStyle;
-                    }
+                if (tank.displayLitresRemaining) {
+                    var litresDiv = document.createElement("div");
+                    var litresLabel = document.createElement("span");
+                    litresLabel.innerHTML = "Litres remaining: ";
+                    litresLabel.style.cssText = labelStyle;
+                    var litresInfo = document.createElement("span");
+                    litresInfo.innerHTML = tank.litresRemaining;
+                    litresInfo.style.cssText = defaultInfoStyle;
+                    litresDiv.appendChild(litresLabel);
+                    litresDiv.appendChild(litresInfo);
+                    tankWrapper.appendChild(litresDiv);
                 }
-                lastInfo.style.cssText = lastReadingStyle;
-                lastDiv.appendChild(lastLabel);
-                lastDiv.appendChild(lastInfo);
-                tankWrapper.appendChild(lastDiv);
                 
-                // Expected empty (red if within 4 weeks)
-                var expectedDiv = document.createElement("div");
-                var expectedLabel = document.createElement("span");
-                expectedLabel.innerHTML = "Expected empty: ";
-                expectedLabel.style.cssText = labelStyle;
-                var expectedInfo = document.createElement("span");
-                expectedInfo.innerHTML = tank.runOutDate;
-                var expectedStyle = defaultInfoStyle;
-                if (tank.rawRunOutDate && tank.rawRunOutDate !== "N/A") {
-                    var runOutDateObj = new Date(tank.rawRunOutDate);
-                    var now = new Date();
-                    if ((runOutDateObj - now) <= 28 * 24 * 3600 * 1000) { // Within 4 weeks
-                        expectedStyle = errorStyle;
+                // Last Reading
+                if (tank.displayLastReading) {
+                    var lastDiv = document.createElement("div");
+                    var lastLabel = document.createElement("span");
+                    lastLabel.innerHTML = "Last reading: ";
+                    lastLabel.style.cssText = labelStyle;
+                    var lastInfo = document.createElement("span");
+                    lastInfo.innerHTML = tank.lastReadingDate;
+                    var lastReadingStyle = defaultInfoStyle;
+                    if (tank.lastReadingDate && tank.lastReadingDate !== "N/A") {
+                        var readingDateObj = new Date(tank.lastReadingDate);
+                        var now = new Date();
+                        if ((now - readingDateObj) > 48 * 3600 * 1000) {
+                            lastReadingStyle = errorStyle;
+                        }
                     }
+                    lastInfo.style.cssText = lastReadingStyle;
+                    lastDiv.appendChild(lastLabel);
+                    lastDiv.appendChild(lastInfo);
+                    tankWrapper.appendChild(lastDiv);
                 }
-                expectedInfo.style.cssText = expectedStyle;
-                expectedDiv.appendChild(expectedLabel);
-                expectedDiv.appendChild(expectedInfo);
-                tankWrapper.appendChild(expectedDiv);
+                
+                // Expected empty
+                if (tank.displayExpectedEmpty) {
+                    var expectedDiv = document.createElement("div");
+                    var expectedLabel = document.createElement("span");
+                    expectedLabel.innerHTML = "Expected empty: ";
+                    expectedLabel.style.cssText = labelStyle;
+                    var expectedInfo = document.createElement("span");
+                    expectedInfo.innerHTML = tank.runOutDate;
+                    var expectedStyle = defaultInfoStyle;
+                    if (tank.rawRunOutDate && tank.rawRunOutDate !== "N/A") {
+                        var runOutDateObj = new Date(tank.rawRunOutDate);
+                        var now = new Date();
+                        if ((runOutDateObj - now) <= 28 * 24 * 3600 * 1000) {
+                            expectedStyle = errorStyle;
+                        }
+                    }
+                    expectedInfo.style.cssText = expectedStyle;
+                    expectedDiv.appendChild(expectedLabel);
+                    expectedDiv.appendChild(expectedInfo);
+                    tankWrapper.appendChild(expectedDiv);
+                }
             }
             
             wrapper.appendChild(tankWrapper);
