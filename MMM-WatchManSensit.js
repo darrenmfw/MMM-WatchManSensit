@@ -2,17 +2,18 @@ Module.register("MMM-WatchManSensit", {
 
     // Default configuration options.
     defaults: {
-        updateInterval: 60000, // Update every 60 seconds.
+        updateInterval: 60000,   // Update every 60 seconds.
         serialNumber: "12345678",  // Example serial number.
         password: "Password1!",    // Example password.
-        culture: "en"              // Culture/language parameter.
+        culture: "en",             // Culture/language parameter.
+        tankName: "My Tank"        // Display name for your tank.
     },
 
     start: function() {
         Log.info("Starting MMM-WatchManSensit module...");
-        // Initialize the data object with a new runOutDate field.
+        // Initialize the data object.
         this.dataReceived = {
-            lastReading: "N/A",
+            fillLevel: "N/A",
             lastReadingDate: "N/A",
             runOutDate: "N/A"
         };
@@ -37,21 +38,25 @@ Module.register("MMM-WatchManSensit", {
     getDom: function() {
         var wrapper = document.createElement("div");
 
+        // Tank Name
         var title = document.createElement("h2");
-        title.innerHTML = "WatchMan SENSiT";
+        title.innerHTML = this.config.tankName;
         wrapper.appendChild(title);
 
-        var readingDiv = document.createElement("div");
-        readingDiv.innerHTML = "Last Reading: " + this.dataReceived.lastReading;
-        wrapper.appendChild(readingDiv);
+        // Fill level
+        var fillDiv = document.createElement("div");
+        fillDiv.innerHTML = "Fill level: " + this.dataReceived.fillLevel;
+        wrapper.appendChild(fillDiv);
 
-        var dateDiv = document.createElement("div");
-        dateDiv.innerHTML = "Last Reading Date: " + this.dataReceived.lastReadingDate;
-        wrapper.appendChild(dateDiv);
+        // Last reading date (timestamp without seconds)
+        var lastReadingDiv = document.createElement("div");
+        lastReadingDiv.innerHTML = "Last reading: " + this.dataReceived.lastReadingDate;
+        wrapper.appendChild(lastReadingDiv);
 
-        var runOutDiv = document.createElement("div");
-        runOutDiv.innerHTML = "Run Out Date: " + this.dataReceived.runOutDate;
-        wrapper.appendChild(runOutDiv);
+        // Expected empty date (date only)
+        var expectedEmptyDiv = document.createElement("div");
+        expectedEmptyDiv.innerHTML = "Expected empty: " + this.dataReceived.runOutDate;
+        wrapper.appendChild(expectedEmptyDiv);
 
         return wrapper;
     }
