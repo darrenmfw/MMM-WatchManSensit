@@ -1,30 +1,45 @@
-# MMM-WatchManSensit v1.1.0
+# MMM-WatchManSensit v1.1.1
 
 **Release Date:** February 2025
 
 ## Overview
-MMM-WatchManSensit v1.1.0 introduces multi‑tank support for MagicMirror². In this release, you can configure up to three tanks. Each tank is defined by a single serial number and a tank name. The module uses the serial number of the first tank (Tank 1) to construct the user ID (by prepending "BOX") for all SOAP requests, while each tank’s own serial number is used as its signalman number. **IMPORTANT:** The first tank's serial number MUST be the one from the first tank set up in the app.
+MMM-WatchManSensit v1.1.1 builds on the multi‑tank support introduced in v1.1.0 by adding a new data line for displaying the tank’s remaining litres and introducing per-data-line visibility functionality. In this release, each tank is defined by a single serial number and a tank name. The module uses the serial number of the first tank (Tank 1) to construct the user ID (by prepending "BOX") for all SOAP requests, while each tank’s own serial number is used as its signalman number. **IMPORTANT:** The first tank's serial number MUST be the one from the first tank set up in the app.
 
-The module communicates with the Kingspan Watchman SENSiT service via SOAP requests to retrieve live data, including fill level, last reading timestamp, and expected empty (run-out) date. The display shows these values with conditional formatting:
+For each tank, the module now retrieves and displays:
+- **Fill level:** e.g. "85%"
+- **Litres remaining:** e.g. "2087 L"
+- **Last reading:** The timestamp when the tank was last read (formatted without seconds, with a 2-digit year)
+- **Expected empty:** The expected run‑out date (formatted as date-only with a 2-digit year)
+
+Each tank configuration now supports optional visibility flags that let you hide any data line on a per-tank basis.
+
+Conditional formatting is applied:
 - Labels are grey.
-- Data values are white, unless:
+- Data values are white unless:
   - The "Last reading" is over 48 hours old (displayed in red).
   - The "Expected empty" date is within 4 weeks (displayed in red).
 
 ## New Features
 - **Multi-Tank Support:**  
   - Configure up to three tanks using a single serial number and tank name for each.
-  - The module uses the first tank’s serial number (Tank 1) to construct the user ID ("BOX" + Tank 1 serial) for all SOAP requests.
+  - The module uses the first tank’s serial number (Tank 1) to build the user ID ("BOX" + Tank1.serialNumber) for all SOAP requests.
   - Each tank’s own serial number is used as its signalman number.
+- **Additional Data Line (Litres Remaining):**  
+  - The SOAP response now includes `<LevelLitres>`, which is displayed as "Litres remaining:".
+- **Data Line Visibility Functionality:**  
+  - Each tank configuration can now include optional boolean flags:
+    - `displayFillLevel` – shows or hides the "Fill level:" line.
+    - `displayLitresRemaining` – shows or hides the "Litres remaining:" line.
+    - `displayLastReading` – shows or hides the "Last reading:" line.
+    - `displayExpectedEmpty` – shows or hides the "Expected empty:" line.
+  - If these flags are omitted, they default to true.
 - **SOAP-Based Data Retrieval:**  
-  - Retrieves data (fill level, last reading, expected empty date) for each tank via SOAP requests.
+  - Retrieves fill level, litres remaining, last reading timestamp, and expected empty (run-out) date for each tank.
 - **Conditional UI Display:**  
   - Displays an error if a tank returns invalid data.
   - Tanks with a blank serial number are omitted.
-- **Customizable Display:**  
-  - Labels are rendered in grey and data values in white, with conditional red coloring if the "Last reading" is over 48 hours old or if the "Expected empty" date is within 4 weeks.
 - **Configurable Update Interval:**  
-  - The module updates the data at a user-defined interval; the default is now 1 hour.
+  - The module updates the data at a user-defined interval; the default is 1 hour.
 
 ## Requirements
 - [MagicMirror²](https://magicmirror.builders/)
@@ -63,21 +78,33 @@ The module communicates with the Kingspan Watchman SENSiT service via SOAP reque
      position: "top_right", // Change this to your preferred location.
      config: {
        updateInterval: 3600000, // Update every 1 hour.
-       // Configure each tank below. The first tank's serial number MUST be the one
-       // from the first tank set up in the app. That serial will be used to build the
-       // user ID ("BOX" + first tank's serial) for all SOAP requests.
+       // Configure each tank below.
+       // IMPORTANT: The first tank's serial number MUST be the one from the first tank set up in the app.
+       // That serial is used to build the user ID ("BOX" + Tank1.serialNumber) for all SOAP requests.
        tanks: [
          {
-           serialNumber: "12345678", // Tank 1 serial (used for both user ID and signalman for Tank 1)
-           tankName: "Main Tank"
+           serialNumber: "12345678",   // Tank 1 serial (used for both user ID and signalman for Tank 1)
+           tankName: "Main Tank",
+           displayFillLevel: true,
+           displayLitresRemaining: true,
+           displayLastReading: true,
+           displayExpectedEmpty: true
          },
          {
-           serialNumber: "87654321", // Tank 2 serial (user ID from Tank 1 is used for this tank)
-           tankName: "Secondary Tank"
+           serialNumber: "87654321",   // Tank 2 serial (user ID from Tank 1 is used for this tank)
+           tankName: "Secondary Tank",
+           displayFillLevel: true,
+           displayLitresRemaining: true,
+           displayLastReading: true,
+           displayExpectedEmpty: true
          },
          {
-           serialNumber: "",         // Blank serial; this tank will be omitted.
-           tankName: "Tertiary Tank"
+           serialNumber: "",           // Blank serial; this tank will be omitted.
+           tankName: "Tertiary Tank",
+           displayFillLevel: true,
+           displayLitresRemaining: true,
+           displayLastReading: true,
+           displayExpectedEmpty: true
          }
        ],
        password: "Password1!", // Shared password for all tanks.
@@ -108,16 +135,18 @@ The module communicates with the Kingspan Watchman SENSiT service via SOAP reque
    ```
    with the SOAPAction `"http://mobileapp/SoapMobileAPPGetLatestLevel_v3"`. The SOAP response is parsed to extract:
    - **LevelPercentage:** The fill level.
-   - **ReadingDate:** The last reading timestamp (formatted without seconds, with a 2-digit year).
+   - **LevelLitres:** The fill level in litres.
+   - **ReadingDate:** The last reading timestamp (formatted without seconds and with a 2-digit year).
    - **RunOutDate:** The expected empty date (formatted as date-only with a 2-digit year).
    
 3. **Display:**  
    The front-end module displays a block for each tank with valid data:
    - The tank name appears at the top.
    - "Fill level:" shows the fill level (e.g., "85%").
-   - "Last reading:" displays the formatted last reading timestamp in white unless it’s over 48 hours old, in which case it turns red.
-   - "Expected empty:" displays the expected empty date in white unless it is within 4 weeks, in which case it turns red.
-   - Tanks that return invalid data or have a blank serial number are omitted or display an error message.
+   - "Litres remaining:" displays the level in litres (e.g., "2087 L").
+   - "Last reading:" displays the formatted last reading timestamp in white (or red if over 48 hours old).
+   - "Expected empty:" displays the formatted run-out date in white (or red if within 4 weeks).
+   - Tanks that return invalid data or have a blank serial number are omitted (or display an error message).
 
 ## Repository
 
