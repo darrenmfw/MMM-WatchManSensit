@@ -10,11 +10,10 @@ module.exports = NodeHelper.create({
             self.sendSocketNotification("WATCHMAN_DATA_RESPONSE", []);
             return;
         }
-        // Filter out any tanks with a blank or missing serialNumber.
+        // Filter out any tanks with a blank or missing serial number.
         var validTanks = tanks.filter(function(tank) {
             return tank.serialNumber && tank.serialNumber.trim() !== "";
         });
-        // Ensure we have at least one valid tank to use for the user id.
         if (validTanks.length === 0) {
             self.sendSocketNotification("WATCHMAN_DATA_RESPONSE", []);
             return;
@@ -22,18 +21,17 @@ module.exports = NodeHelper.create({
         var totalRequests = Math.min(validTanks.length, 3);
         var results = [];
         var completedRequests = 0;
-        // Use the first tank's serial number for the user id for all tanks.
+        // Use the first tank's serial for the user ID for all tanks.
         var primaryUserSerial = validTanks[0].serialNumber;
 
         validTanks.slice(0, 3).forEach(function(tankConfig, index) {
             var userId, signalmanNo;
             if (index === 0) {
-                // For the first tank, both user id and signalman come from its own serial.
+                // For tank 1, use its own serial for both fields.
                 userId = "BOX" + tankConfig.serialNumber;
                 signalmanNo = tankConfig.serialNumber;
             } else {
-                // For tanks 2 and 3, use the primary user serial for the user id,
-                // and the tank's own serial for the signalman number.
+                // For tanks 2 and 3, use primaryUserSerial for the user ID and their own serial for signalman.
                 userId = "BOX" + primaryUserSerial;
                 signalmanNo = tankConfig.serialNumber;
             }
@@ -103,6 +101,7 @@ module.exports = NodeHelper.create({
                                     var fillLevel = levelElement.LevelPercentage;
                                     var readingDate = levelElement.ReadingDate;
                                     var runOutDate = levelElement.RunOutDate;
+                                    var litres = levelElement.LevelLitres || "N/A";
                                     
                                     var d = new Date(readingDate);
                                     var formattedReadingDate = d.toLocaleString("en-GB", {
@@ -126,6 +125,7 @@ module.exports = NodeHelper.create({
                                     results[index] = {
                                         tankName: tankConfig.tankName,
                                         fillLevel: fillLevel + "%",
+                                        litresRemaining: litres + (litres !== "N/A" ? " L" : ""),
                                         lastReadingDate: formattedReadingDate,
                                         runOutDate: formattedRunOutDate,
                                         rawRunOutDate: runOutDate
