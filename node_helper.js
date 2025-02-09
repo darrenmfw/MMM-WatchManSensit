@@ -44,7 +44,6 @@ module.exports = NodeHelper.create({
             });
             res.on("end", function() {
                 console.log("Received SOAP response:", data);
-                // Use xml2js to parse the XML response, stripping namespace prefixes.
                 var parser = new xml2js.Parser({
                     explicitArray: false,
                     tagNameProcessors: [xml2js.processors.stripPrefix],
@@ -56,51 +55,82 @@ module.exports = NodeHelper.create({
                     } else {
                         console.log("Parsed XML object:", result);
                         try {
-                            // Navigate the parsed XML structure.
                             var envelope = result.Envelope;
                             var body = envelope.Body;
                             var response = body.SoapMobileAPPGetLatestLevel_v3Response;
                             var resultData = response.SoapMobileAPPGetLatestLevel_v3Result;
                             console.log("Result Data Keys:", Object.keys(resultData));
                             
-                            // Extract data from the <Level> element.
                             var levelElement = resultData.Level;
                             if (levelElement && levelElement.LevelPercentage) {
                                 var levelPercentage = levelElement.LevelPercentage;
                                 var readingDate = levelElement.ReadingDate;
-                                // Format the date without seconds.
+                                var runOutDate = levelElement.RunOutDate;
+                                
+                                // Format reading date without seconds.
                                 var d = new Date(readingDate);
-                                var formattedDate = d.toLocaleString(undefined, {
-                                    year: 'numeric', 
-                                    month: '2-digit', 
-                                    day: '2-digit', 
-                                    hour: '2-digit', 
+                                var formattedReadingDate = d.toLocaleString(undefined, {
+                                    year: 'numeric',
+                                    month: '2-digit',
+                                    day: '2-digit',
+                                    hour: '2-digit',
                                     minute: '2-digit'
                                 });
-                                var sensorData = {
-                                    lastReading: levelPercentage + "%",
-                                    lastReadingDate: formattedDate
-                                };
-                                self.sendSocketNotification("WATCHMAN_DATA_RESPONSE", sensorData);
-                            } else {
-                                // Fallback: if Level data is missing or invalid, use SmartServReading.
-                                var smartReading = resultData.SmartServReading;
-                                var fallbackPercentage = smartReading ? smartReading.LevelPercentage : "N/A";
-                                var fallbackDate = smartReading ? smartReading.ReadingDate : "N/A";
-                                var formattedDateFallback = "N/A";
-                                if (fallbackDate !== "N/A") {
-                                    var dFallback = new Date(fallbackDate);
-                                    formattedDateFallback = dFallback.toLocaleString(undefined, {
-                                        year: 'numeric', 
-                                        month: '2-digit', 
-                                        day: '2-digit', 
-                                        hour: '2-digit', 
+                                
+                                // Format run out date without seconds.
+                                var formattedRunOutDate = "N/A";
+                                if (runOutDate) {
+                                    var dRun = new Date(runOutDate);
+                                    formattedRunOutDate = dRun.toLocaleString(undefined, {
+                                        year: 'numeric',
+                                        month: '2-digit',
+                                        day: '2-digit',
+                                        hour: '2-digit',
                                         minute: '2-digit'
                                     });
                                 }
+                                
+                                var sensorData = {
+                                    lastReading: levelPercentage + "%",
+                                    lastReadingDate: formattedReadingDate,
+                                    runOutDate: formattedRunOutDate
+                                };
+                                self.sendSocketNotification("WATCHMAN_DATA_RESPONSE", sensorData);
+                            } else {
+                                // Fallback to SmartServReading if Level is missing or invalid.
+                                var smartReading = resultData.SmartServReading;
+                                var fallbackPercentage = smartReading ? smartReading.LevelPercentage : "N/A";
+                                var fallbackDate = smartReading ? smartReading.ReadingDate : "N/A";
+                                var fallbackRunOut = smartReading ? smartReading.RunOutDate : "N/A";
+                                
+                                var formattedFallbackDate = "N/A";
+                                if (fallbackDate !== "N/A") {
+                                    var dFallback = new Date(fallbackDate);
+                                    formattedFallbackDate = dFallback.toLocaleString(undefined, {
+                                        year: 'numeric',
+                                        month: '2-digit',
+                                        day: '2-digit',
+                                        hour: '2-digit',
+                                        minute: '2-digit'
+                                    });
+                                }
+                                
+                                var formattedFallbackRunOut = "N/A";
+                                if (fallbackRunOut !== "N/A") {
+                                    var dFallbackRun = new Date(fallbackRunOut);
+                                    formattedFallbackRunOut = dFallbackRun.toLocaleString(undefined, {
+                                        year: 'numeric',
+                                        month: '2-digit',
+                                        day: '2-digit',
+                                        hour: '2-digit',
+                                        minute: '2-digit'
+                                    });
+                                }
+                                
                                 var sensorDataFallback = {
                                     lastReading: fallbackPercentage + (fallbackPercentage !== "N/A" ? "%" : ""),
-                                    lastReadingDate: formattedDateFallback
+                                    lastReadingDate: formattedFallbackDate,
+                                    runOutDate: formattedFallbackRunOut
                                 };
                                 self.sendSocketNotification("WATCHMAN_DATA_RESPONSE", sensorDataFallback);
                             }
