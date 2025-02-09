@@ -3,10 +3,10 @@ var https = require("https");
 var xml2js = require("xml2js");
 
 module.exports = NodeHelper.create({
-    // This function processes all tanks in the config.tanks array.
     updateLatestLevel: function(config) {
         var self = this;
-        var tanks = config.tanks; 
+        // For multi-tank support, we iterate over config.tanks.
+        var tanks = config.tanks;
         if (!tanks || !Array.isArray(tanks) || tanks.length === 0) {
             self.sendSocketNotification("WATCHMAN_DATA_RESPONSE", []);
             return;
@@ -15,10 +15,10 @@ module.exports = NodeHelper.create({
         var results = [];
         var completedRequests = 0;
 
-        // Process each tank individually.
+        // Process each tank individually (limit to three tanks).
         tanks.slice(0, 3).forEach(function(tankConfig, index) {
-            // For each tank, construct the SOAP envelope.
-            // User ID is "BOX" + tankConfig.serialNumber and signalman number is tankConfig.serialNumber.
+            // Build the SOAP envelope using the tank's serial number.
+            // The user ID is "BOX" + serialNumber and signalman number is the serialNumber.
             var userId = "BOX" + tankConfig.serialNumber;
             var signalmanNo = tankConfig.serialNumber;
             
@@ -65,13 +65,14 @@ module.exports = NodeHelper.create({
                             results[index] = { tankName: tankConfig.tankName, error: "XML parse error: " + err };
                         } else {
                             try {
-                                // Navigate the parsed XML structure.
                                 var envelope = result.Envelope;
                                 var body = envelope.Body;
                                 var response = body.SoapMobileAPPGetLatestLevel_v3Response;
                                 var resultData = response.SoapMobileAPPGetLatestLevel_v3Result;
+                                
                                 var levelElement = resultData.Level;
-                                if (levelElement && levelElement.LevelPercentage) {
+                                // Only accept valid data if LevelPercentage is present and non-negative.
+                                if (levelElement && levelElement.LevelPercentage && parseFloat(levelElement.LevelPercentage) >= 0) {
                                     var fillLevel = levelElement.LevelPercentage;
                                     var readingDate = levelElement.ReadingDate;
                                     var runOutDate = levelElement.RunOutDate;
