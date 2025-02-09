@@ -3,10 +3,9 @@ Module.register("MMM-WatchManSensit", {
     // Default configuration options.
     defaults: {
         updateInterval: 60000, // Update every 60 seconds.
-        userid: "",           // e.g., "BOX12345678"
-        password: "",         // e.g., "Password1!"
-        signalmanno: "",      // e.g., "12345678"
-        culture: "en"
+        serialNumber: "12345678",  // Example serial number (the number only).
+        password: "Password1!",    // Example password.
+        culture: "en"              // Culture/language parameter.
     },
 
     start: function() {
