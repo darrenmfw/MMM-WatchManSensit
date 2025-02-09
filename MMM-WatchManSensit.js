@@ -1,6 +1,5 @@
 Module.register("MMM-WatchManSensit", {
 
-    // Default configuration options.
     defaults: {
         updateInterval: 3600000,   // Update every 1 hour.
         password: "Password1!",    // Shared password for all tanks.
@@ -15,7 +14,7 @@ Module.register("MMM-WatchManSensit", {
                 tankName: "Secondary Tank"
             },
             {
-                serialNumber: "11223344", // Example serial number for tank 3.
+                serialNumber: "",         // Blank tank config; this one will be skipped.
                 tankName: "Tertiary Tank"
             }
         ]
@@ -23,11 +22,8 @@ Module.register("MMM-WatchManSensit", {
 
     start: function() {
         Log.info("Starting MMM-WatchManSensit module...");
-        // Initialize dataReceived as an empty array.
         this.dataReceived = [];
-        // Request data immediately.
         this.sendSocketNotification("WATCHMAN_DATA_REQUEST", this.config);
-        // Schedule periodic updates.
         var self = this;
         setInterval(function() {
             self.sendSocketNotification("WATCHMAN_DATA_REQUEST", self.config);
@@ -73,7 +69,7 @@ Module.register("MMM-WatchManSensit", {
             nameDiv.appendChild(nameInfo);
             tankWrapper.appendChild(nameDiv);
             
-            // If there's an error, display it.
+            // If error, display error message.
             if (tank.error) {
                 var errorDiv = document.createElement("div");
                 errorDiv.innerHTML = "Error: " + tank.error;
@@ -92,7 +88,7 @@ Module.register("MMM-WatchManSensit", {
                 fillDiv.appendChild(fillInfo);
                 tankWrapper.appendChild(fillDiv);
                 
-                // Last Reading (labeled "Last reading:"; red if more than 48 hours old)
+                // Last Reading (red if > 48 hours old)
                 var lastDiv = document.createElement("div");
                 var lastLabel = document.createElement("span");
                 lastLabel.innerHTML = "Last reading: ";
@@ -103,7 +99,7 @@ Module.register("MMM-WatchManSensit", {
                 if (tank.lastReadingDate && tank.lastReadingDate !== "N/A") {
                     var readingDateObj = new Date(tank.lastReadingDate);
                     var now = new Date();
-                    if ((now - readingDateObj) > 48 * 3600 * 1000) { // More than 48 hours old
+                    if ((now - readingDateObj) > 48 * 3600 * 1000) {
                         lastReadingStyle = errorStyle;
                     }
                 }
@@ -112,7 +108,7 @@ Module.register("MMM-WatchManSensit", {
                 lastDiv.appendChild(lastInfo);
                 tankWrapper.appendChild(lastDiv);
                 
-                // Expected empty (labeled "Expected empty:"; red if within 4 weeks)
+                // Expected empty (red if within 4 weeks)
                 var expectedDiv = document.createElement("div");
                 var expectedLabel = document.createElement("span");
                 expectedLabel.innerHTML = "Expected empty: ";
@@ -123,7 +119,7 @@ Module.register("MMM-WatchManSensit", {
                 if (tank.rawRunOutDate && tank.rawRunOutDate !== "N/A") {
                     var runOutDateObj = new Date(tank.rawRunOutDate);
                     var now = new Date();
-                    if ((runOutDateObj - now) <= 28 * 24 * 3600 * 1000) { // Within 4 weeks
+                    if ((runOutDateObj - now) <= 28 * 24 * 3600 * 1000) {
                         expectedStyle = errorStyle;
                     }
                 }
