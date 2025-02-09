@@ -5,9 +5,9 @@ var xml2js = require("xml2js");
 module.exports = NodeHelper.create({
     updateLatestLevel: function(config) {
         var self = this;
-        // Construct the SOAP XML envelope using the serialNumber.
-        // User ID is "BOX" concatenated with the serialNumber,
-        // and signalman number is the serialNumber itself.
+        // Construct the SOAP XML envelope.
+        // The user ID is constructed by prefixing "BOX" to the serialNumber,
+        // and the signalman number is simply the serialNumber.
         var userId = "BOX" + config.serialNumber;
         var signalmanNo = config.serialNumber;
         
@@ -59,76 +59,61 @@ module.exports = NodeHelper.create({
                             var body = envelope.Body;
                             var response = body.SoapMobileAPPGetLatestLevel_v3Response;
                             var resultData = response.SoapMobileAPPGetLatestLevel_v3Result;
-                            console.log("Result Data Keys:", Object.keys(resultData));
                             
-                            var levelElement = resultData.Level;
-                            if (levelElement && levelElement.LevelPercentage) {
-                                var fillLevel = levelElement.LevelPercentage;
-                                var readingDate = levelElement.ReadingDate;
-                                var runOutDate = levelElement.RunOutDate;
+                            // Expecting a <Tanks> element containing one or more <APITankInfo_V3> entries.
+                            var tanksContainer = resultData.Tanks;
+                            if (tanksContainer && tanksContainer.APITankInfo_V3) {
+                                var tanks = tanksContainer.APITankInfo_V3;
+                                // Ensure tanks is an array.
+                                if (!Array.isArray(tanks)) {
+                                    tanks = [tanks];
+                                }
+                                // Limit to a maximum of three tanks.
+                                tanks = tanks.slice(0, 3);
                                 
-                                // Format the reading date with 2-digit year (removing seconds)
-                                var d = new Date(readingDate);
-                                var formattedReadingDate = d.toLocaleString(undefined, {
-                                    year: '2-digit',
-                                    month: '2-digit',
-                                    day: '2-digit',
-                                    hour: '2-digit',
-                                    minute: '2-digit'
+                                var sensors = [];
+                                tanks.forEach(function(tank) {
+                                    // Only process if there is valid data
+                                    if (tank && tank.LevelPercentage && tank.ReadingDate) {
+                                        var tankName = tank.TankName || "Unnamed Tank";
+                                        var fillLevel = tank.LevelPercentage;
+                                        var readingDate = tank.ReadingDate;
+                                        var runOutDate = tank.RunOutDate;
+                                        
+                                        // Format reading date (2-digit year, no seconds)
+                                        var d = new Date(readingDate);
+                                        var formattedReadingDate = d.toLocaleString("en-GB", {
+                                            year: '2-digit',
+                                            month: '2-digit',
+                                            day: '2-digit',
+                                            hour: '2-digit',
+                                            minute: '2-digit'
+                                        });
+                                        
+                                        // Format run out date as date only (2-digit year)
+                                        var formattedRunOutDate = "";
+                                        if (runOutDate && runOutDate !== "0001-01-01T00:00:00") {
+                                            var dRun = new Date(runOutDate);
+                                            formattedRunOutDate = dRun.toLocaleDateString("en-GB", {
+                                                year: '2-digit',
+                                                month: '2-digit',
+                                                day: '2-digit'
+                                            });
+                                        }
+                                        
+                                        sensors.push({
+                                            tankName: tankName,
+                                            fillLevel: fillLevel + "%",
+                                            lastReadingDate: formattedReadingDate,
+                                            runOutDate: formattedRunOutDate,
+                                            rawRunOutDate: runOutDate
+                                        });
+                                    }
                                 });
-                                
-                                // Format the run out date as date only with 2-digit year.
-                                var formattedRunOutDate = "N/A";
-                                if (runOutDate && runOutDate !== "0001-01-01T00:00:00") {
-                                    var dRun = new Date(runOutDate);
-                                    formattedRunOutDate = dRun.toLocaleDateString(undefined, {
-                                        year: '2-digit',
-                                        month: '2-digit',
-                                        day: '2-digit'
-                                    });
-                                }
-                                
-                                var sensorData = {
-                                    fillLevel: fillLevel + "%",
-                                    lastReadingDate: formattedReadingDate,
-                                    runOutDate: formattedRunOutDate
-                                };
-                                self.sendSocketNotification("WATCHMAN_DATA_RESPONSE", sensorData);
+                                self.sendSocketNotification("WATCHMAN_DATA_RESPONSE", sensors);
                             } else {
-                                // Fallback to SmartServReading if Level is missing or invalid.
-                                var smartReading = resultData.SmartServReading;
-                                var fallbackPercentage = smartReading ? smartReading.LevelPercentage : "N/A";
-                                var fallbackDate = smartReading ? smartReading.ReadingDate : "N/A";
-                                var fallbackRunOut = smartReading ? smartReading.RunOutDate : "N/A";
-                                
-                                var formattedFallbackDate = "N/A";
-                                if (fallbackDate !== "N/A" && fallbackDate !== "0001-01-01T00:00:00") {
-                                    var dFallback = new Date(fallbackDate);
-                                    formattedFallbackDate = dFallback.toLocaleString(undefined, {
-                                        year: '2-digit',
-                                        month: '2-digit',
-                                        day: '2-digit',
-                                        hour: '2-digit',
-                                        minute: '2-digit'
-                                    });
-                                }
-                                
-                                var formattedFallbackRunOut = "N/A";
-                                if (fallbackRunOut !== "N/A" && fallbackRunOut !== "0001-01-01T00:00:00") {
-                                    var dFallbackRun = new Date(fallbackRunOut);
-                                    formattedFallbackRunOut = dFallbackRun.toLocaleDateString(undefined, {
-                                        year: '2-digit',
-                                        month: '2-digit',
-                                        day: '2-digit'
-                                    });
-                                }
-                                
-                                var sensorDataFallback = {
-                                    fillLevel: fallbackPercentage + (fallbackPercentage !== "N/A" ? "%" : ""),
-                                    lastReadingDate: formattedFallbackDate,
-                                    runOutDate: formattedFallbackRunOut
-                                };
-                                self.sendSocketNotification("WATCHMAN_DATA_RESPONSE", sensorDataFallback);
+                                // No tanks data found.
+                                self.sendSocketNotification("WATCHMAN_DATA_RESPONSE", []);
                             }
                         } catch (ex) {
                             self.sendSocketNotification("WATCHMAN_ERROR", "Error extracting data: " + ex);
