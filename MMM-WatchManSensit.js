@@ -38,25 +38,59 @@ Module.register("MMM-WatchManSensit", {
     getDom: function() {
         var wrapper = document.createElement("div");
 
-        // Tank Name
-        var title = document.createElement("h2");
-        title.innerHTML = this.config.tankName;
-        wrapper.appendChild(title);
+        // Define inline styles for labels and information.
+        var labelStyle = "color: grey; margin-right: 5px;";
+        var infoStyle = "color: white;";
 
-        // Fill level
+        // Create a container div for each line.
+
+        // Tank Name
+        var tankDiv = document.createElement("div");
+        var tankLabel = document.createElement("span");
+        tankLabel.innerHTML = "Tank: ";
+        tankLabel.style.cssText = labelStyle;
+        var tankInfo = document.createElement("span");
+        tankInfo.innerHTML = this.config.tankName;
+        tankInfo.style.cssText = infoStyle;
+        tankDiv.appendChild(tankLabel);
+        tankDiv.appendChild(tankInfo);
+        wrapper.appendChild(tankDiv);
+
+        // Fill Level
         var fillDiv = document.createElement("div");
-        fillDiv.innerHTML = "Fill level: " + this.dataReceived.fillLevel;
+        var fillLabel = document.createElement("span");
+        fillLabel.innerHTML = "Fill level: ";
+        fillLabel.style.cssText = labelStyle;
+        var fillInfo = document.createElement("span");
+        fillInfo.innerHTML = this.dataReceived.fillLevel;
+        fillInfo.style.cssText = infoStyle;
+        fillDiv.appendChild(fillLabel);
+        fillDiv.appendChild(fillInfo);
         wrapper.appendChild(fillDiv);
 
-        // Last reading date (timestamp without seconds)
-        var lastReadingDiv = document.createElement("div");
-        lastReadingDiv.innerHTML = "Last reading: " + this.dataReceived.lastReadingDate;
-        wrapper.appendChild(lastReadingDiv);
+        // Last Reading Date (labeled "Last reading:")
+        var lastDiv = document.createElement("div");
+        var lastLabel = document.createElement("span");
+        lastLabel.innerHTML = "Last reading: ";
+        lastLabel.style.cssText = labelStyle;
+        var lastInfo = document.createElement("span");
+        lastInfo.innerHTML = this.dataReceived.lastReadingDate;
+        lastInfo.style.cssText = infoStyle;
+        lastDiv.appendChild(lastLabel);
+        lastDiv.appendChild(lastInfo);
+        wrapper.appendChild(lastDiv);
 
-        // Expected empty date (date only)
-        var expectedEmptyDiv = document.createElement("div");
-        expectedEmptyDiv.innerHTML = "Expected empty: " + this.dataReceived.runOutDate;
-        wrapper.appendChild(expectedEmptyDiv);
+        // Run Out Date (labeled "Expected empty:")
+        var expectedDiv = document.createElement("div");
+        var expectedLabel = document.createElement("span");
+        expectedLabel.innerHTML = "Expected empty: ";
+        expectedLabel.style.cssText = labelStyle;
+        var expectedInfo = document.createElement("span");
+        expectedInfo.innerHTML = this.dataReceived.runOutDate;
+        expectedInfo.style.cssText = infoStyle;
+        expectedDiv.appendChild(expectedLabel);
+        expectedDiv.appendChild(expectedInfo);
+        wrapper.appendChild(expectedDiv);
 
         return wrapper;
     }
