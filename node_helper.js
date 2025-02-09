@@ -6,16 +6,23 @@ module.exports = NodeHelper.create({
     updateLatestLevel: function(config) {
         var self = this;
         var tanks = config.tanks;
-        if (!tanks || !Array.isArray(tanks) || tanks.length === 0) {
+
+        // Filter out any tank configs that have a blank or missing serialNumber.
+        var validTanks = tanks.filter(function(tank) {
+            return tank.serialNumber && tank.serialNumber.trim() !== "";
+        });
+
+        if (!validTanks || validTanks.length === 0) {
             self.sendSocketNotification("WATCHMAN_DATA_RESPONSE", []);
             return;
         }
-        // We'll store results for each tank, even if it's an error.
+
+        // We'll store results for each tank.
         var results = [];
         var completedRequests = 0;
-        var totalRequests = Math.min(tanks.length, 3);
+        var totalRequests = Math.min(validTanks.length, 3);
 
-        tanks.slice(0, 3).forEach(function(tankConfig, index) {
+        validTanks.slice(0, 3).forEach(function(tankConfig, index) {
             var userId = "BOX" + tankConfig.serialNumber;
             var signalmanNo = tankConfig.serialNumber;
             
@@ -68,45 +75,39 @@ module.exports = NodeHelper.create({
                                 var resultData = response.SoapMobileAPPGetLatestLevel_v3Result;
                                 var levelElement = resultData.Level;
                                 
-                                if (levelElement && levelElement.LevelPercentage) {
-                                    var percentage = parseFloat(levelElement.LevelPercentage);
-                                    if (percentage === -1) {
-                                        // Return error if the fill level is -1.
-                                        results[index] = { tankName: tankConfig.tankName, error: "No valid data" };
-                                    } else {
-                                        var fillLevel = levelElement.LevelPercentage;
-                                        var readingDate = levelElement.ReadingDate;
-                                        var runOutDate = levelElement.RunOutDate;
-                                        
-                                        // Format the reading date (2-digit year, no seconds)
-                                        var d = new Date(readingDate);
-                                        var formattedReadingDate = d.toLocaleString("en-GB", {
+                                if (levelElement && levelElement.LevelPercentage && parseFloat(levelElement.LevelPercentage) !== -1) {
+                                    var fillLevel = levelElement.LevelPercentage;
+                                    var readingDate = levelElement.ReadingDate;
+                                    var runOutDate = levelElement.RunOutDate;
+                                    
+                                    // Format the reading date (2-digit year, no seconds)
+                                    var d = new Date(readingDate);
+                                    var formattedReadingDate = d.toLocaleString("en-GB", {
+                                        year: '2-digit',
+                                        month: '2-digit',
+                                        day: '2-digit',
+                                        hour: '2-digit',
+                                        minute: '2-digit'
+                                    });
+                                    
+                                    // Format the run out date as date only (2-digit year) if valid.
+                                    var formattedRunOutDate = "";
+                                    if (runOutDate && runOutDate !== "0001-01-01T00:00:00") {
+                                        var dRun = new Date(runOutDate);
+                                        formattedRunOutDate = dRun.toLocaleDateString("en-GB", {
                                             year: '2-digit',
                                             month: '2-digit',
-                                            day: '2-digit',
-                                            hour: '2-digit',
-                                            minute: '2-digit'
+                                            day: '2-digit'
                                         });
-                                        
-                                        // Format the run out date as date only (2-digit year) if valid.
-                                        var formattedRunOutDate = "";
-                                        if (runOutDate && runOutDate !== "0001-01-01T00:00:00") {
-                                            var dRun = new Date(runOutDate);
-                                            formattedRunOutDate = dRun.toLocaleDateString("en-GB", {
-                                                year: '2-digit',
-                                                month: '2-digit',
-                                                day: '2-digit'
-                                            });
-                                        }
-                                        
-                                        results[index] = {
-                                            tankName: tankConfig.tankName,
-                                            fillLevel: fillLevel + "%",
-                                            lastReadingDate: formattedReadingDate,
-                                            runOutDate: formattedRunOutDate,
-                                            rawRunOutDate: runOutDate
-                                        };
                                     }
+                                    
+                                    results[index] = {
+                                        tankName: tankConfig.tankName,
+                                        fillLevel: fillLevel + "%",
+                                        lastReadingDate: formattedReadingDate,
+                                        runOutDate: formattedRunOutDate,
+                                        rawRunOutDate: runOutDate
+                                    };
                                 } else {
                                     results[index] = { tankName: tankConfig.tankName, error: "No valid level data" };
                                 }
