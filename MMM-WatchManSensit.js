@@ -1,137 +1,166 @@
-Module.register("MMM-WatchManSensit", {
+var NodeHelper = require("node_helper");
+var https = require("https");
+var xml2js = require("xml2js");
 
-    defaults: {
-        updateInterval: 3600000,   // Update every 1 hour.
-        password: "Password1!",    // Shared password for all tanks.
-        culture: "en",             // Culture/language parameter.
-        tanks: [
-            {
-                serialNumber: "20026081", // Tank 1 serial (used for user ID as well)
-                tankName: "Main Tank"
-            },
-            {
-                serialNumber: "87654321", // Tank 2 serial (user ID from tank 1 is used)
-                tankName: "Secondary Tank"
-            },
-            {
-                serialNumber: "",         // Blank serial; this tank will be skipped.
-                tankName: "Tertiary Tank"
-            }
-        ]
-    },
-
-    start: function() {
-        Log.info("Starting MMM-WatchManSensit module...");
-        this.dataReceived = [];
-        this.sendSocketNotification("WATCHMAN_DATA_REQUEST", this.config);
+module.exports = NodeHelper.create({
+    updateLatestLevel: function(config) {
         var self = this;
-        setInterval(function() {
-            self.sendSocketNotification("WATCHMAN_DATA_REQUEST", self.config);
-        }, this.config.updateInterval);
+        var tanks = config.tanks;
+        if (!tanks || !Array.isArray(tanks) || tanks.length === 0) {
+            self.sendSocketNotification("WATCHMAN_DATA_RESPONSE", []);
+            return;
+        }
+        // Filter out any tanks with a blank or missing serial number.
+        var validTanks = tanks.filter(function(tank) {
+            return tank.serialNumber && tank.serialNumber.trim() !== "";
+        });
+        if (validTanks.length === 0) {
+            self.sendSocketNotification("WATCHMAN_DATA_RESPONSE", []);
+            return;
+        }
+        var totalRequests = Math.min(validTanks.length, 3);
+        var results = [];
+        var completedRequests = 0;
+        // Use the first tank's serial for the user ID for all tanks.
+        var primaryUserSerial = validTanks[0].serialNumber;
+
+        validTanks.slice(0, 3).forEach(function(tankConfig, index) {
+            var userId, signalmanNo;
+            if (index === 0) {
+                // For tank 1, use its own serial for both fields.
+                userId = "BOX" + tankConfig.serialNumber;
+                signalmanNo = tankConfig.serialNumber;
+            } else {
+                // For tanks 2 and 3, use primaryUserSerial for the user ID and their own serial for signalman.
+                userId = "BOX" + primaryUserSerial;
+                signalmanNo = tankConfig.serialNumber;
+            }
+            
+            var soapEnvelope =
+              '<?xml version="1.0" encoding="utf-8"?>' +
+              '<soap:Envelope xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" ' +
+              'xmlns:xsd="http://www.w3.org/2001/XMLSchema" ' +
+              'xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/">' +
+                '<soap:Body>' +
+                  '<SoapMobileAPPGetLatestLevel_v3 xmlns="http://mobileapp/">' +
+                    '<userid>' + userId + '</userid>' +
+                    '<password>' + config.password + '</password>' +
+                    '<signalmanno>' + signalmanNo + '</signalmanno>' +
+                    '<culture>' + config.culture + '</culture>' +
+                  '</SoapMobileAPPGetLatestLevel_v3>' +
+                '</soap:Body>' +
+              '</soap:Envelope>';
+
+            var options = {
+                hostname: 'www.connectsensor.com',
+                path: '/soap/MobileApp.asmx',
+                method: 'POST',
+                headers: {
+                    "Content-Type": "text/xml; charset=utf-8",
+                    "SOAPAction": '"http://mobileapp/SoapMobileAPPGetLatestLevel_v3"',
+                    "Content-Length": Buffer.byteLength(soapEnvelope)
+                }
+            };
+
+            var req = https.request(options, function(res) {
+                var data = "";
+                res.on("data", function(chunk) {
+                    data += chunk;
+                });
+                res.on("end", function() {
+                    console.log("Received SOAP response for tank " + tankConfig.serialNumber + ":", data);
+                    var parser = new xml2js.Parser({
+                        explicitArray: false,
+                        tagNameProcessors: [xml2js.processors.stripPrefix],
+                        ignoreAttrs: true
+                    });
+                    parser.parseString(data, function(err, result) {
+                        if (err) {
+                            results[index] = { tankName: tankConfig.tankName, error: "XML parse error: " + err };
+                        } else {
+                            try {
+                                if (!result.Envelope) {
+                                    throw new Error("Missing Envelope");
+                                }
+                                var body = result.Envelope.Body;
+                                if (!body) {
+                                    throw new Error("Missing Body");
+                                }
+                                var response = body.SoapMobileAPPGetLatestLevel_v3Response;
+                                if (!response) {
+                                    throw new Error("Missing SoapMobileAPPGetLatestLevel_v3Response");
+                                }
+                                var resultData = response.SoapMobileAPPGetLatestLevel_v3Result;
+                                if (!resultData) {
+                                    throw new Error("Missing SoapMobileAPPGetLatestLevel_v3Result");
+                                }
+                                
+                                var levelElement = resultData.Level;
+                                // Accept valid data if LevelPercentage exists and is >= 0.
+                                if (levelElement && levelElement.LevelPercentage && parseFloat(levelElement.LevelPercentage.trim()) >= 0) {
+                                    var fillLevel = levelElement.LevelPercentage;
+                                    var readingDate = levelElement.ReadingDate;
+                                    var runOutDate = levelElement.RunOutDate;
+                                    var litres = levelElement.LevelLitres || "N/A";
+                                    
+                                    var d = new Date(readingDate);
+                                    var formattedReadingDate = d.toLocaleString("en-GB", {
+                                        year: '2-digit',
+                                        month: '2-digit',
+                                        day: '2-digit',
+                                        hour: '2-digit',
+                                        minute: '2-digit'
+                                    });
+                                    
+                                    var formattedRunOutDate = "";
+                                    if (runOutDate && runOutDate !== "0001-01-01T00:00:00") {
+                                        var dRun = new Date(runOutDate);
+                                        formattedRunOutDate = dRun.toLocaleDateString("en-GB", {
+                                            year: '2-digit',
+                                            month: '2-digit',
+                                            day: '2-digit'
+                                        });
+                                    }
+                                    
+                                    results[index] = {
+                                        tankName: tankConfig.tankName,
+                                        fillLevel: fillLevel + "%",
+                                        litresRemaining: litres + (litres !== "N/A" ? " L" : ""),
+                                        lastReadingDate: formattedReadingDate,
+                                        runOutDate: formattedRunOutDate,
+                                        rawRunOutDate: runOutDate
+                                    };
+                                } else {
+                                    results[index] = { tankName: tankConfig.tankName, error: "No valid level data" };
+                                }
+                            } catch (ex) {
+                                results[index] = { tankName: tankConfig.tankName, error: "Error extracting data: " + ex };
+                            }
+                        }
+                        completedRequests++;
+                        if (completedRequests === totalRequests) {
+                            self.sendSocketNotification("WATCHMAN_DATA_RESPONSE", results);
+                        }
+                    });
+                });
+            });
+            
+            req.on("error", function(err) {
+                results[index] = { tankName: tankConfig.tankName, error: "HTTP error: " + err };
+                completedRequests++;
+                if (completedRequests === totalRequests) {
+                    self.sendSocketNotification("WATCHMAN_DATA_RESPONSE", results);
+                }
+            });
+            
+            req.write(soapEnvelope);
+            req.end();
+        });
     },
 
     socketNotificationReceived: function(notification, payload) {
-        if (notification === "WATCHMAN_DATA_RESPONSE") {
-            this.dataReceived = payload;
-            this.updateDom();
-        } else if (notification === "WATCHMAN_ERROR") {
-            Log.error("WATCHMAN_ERROR: " + payload);
+        if (notification === "WATCHMAN_DATA_REQUEST") {
+            this.updateLatestLevel(payload);
         }
-    },
-
-    getDom: function() {
-        var wrapper = document.createElement("div");
-        
-        if (!this.dataReceived || this.dataReceived.length === 0) {
-            wrapper.innerHTML = "No tank data available.";
-            return wrapper;
-        }
-        
-        var labelStyle = "color: grey; margin-right: 5px;";
-        var defaultInfoStyle = "color: white;";
-        var errorStyle = "color: red;";
-        
-        this.dataReceived.forEach(function(tank) {
-            var tankWrapper = document.createElement("div");
-            tankWrapper.style.marginBottom = "10px";
-            tankWrapper.style.paddingBottom = "5px";
-            tankWrapper.style.borderBottom = "1px solid grey";
-            
-            // Tank Name
-            var nameDiv = document.createElement("div");
-            var nameLabel = document.createElement("span");
-            nameLabel.innerHTML = "Tank: ";
-            nameLabel.style.cssText = labelStyle;
-            var nameInfo = document.createElement("span");
-            nameInfo.innerHTML = tank.tankName;
-            nameInfo.style.cssText = defaultInfoStyle;
-            nameDiv.appendChild(nameLabel);
-            nameDiv.appendChild(nameInfo);
-            tankWrapper.appendChild(nameDiv);
-            
-            // If error, display error message.
-            if (tank.error) {
-                var errorDiv = document.createElement("div");
-                errorDiv.innerHTML = "Error: " + tank.error;
-                errorDiv.style.cssText = errorStyle;
-                tankWrapper.appendChild(errorDiv);
-            } else {
-                // Fill Level
-                var fillDiv = document.createElement("div");
-                var fillLabel = document.createElement("span");
-                fillLabel.innerHTML = "Fill level: ";
-                fillLabel.style.cssText = labelStyle;
-                var fillInfo = document.createElement("span");
-                fillInfo.innerHTML = tank.fillLevel;
-                fillInfo.style.cssText = defaultInfoStyle;
-                fillDiv.appendChild(fillLabel);
-                fillDiv.appendChild(fillInfo);
-                tankWrapper.appendChild(fillDiv);
-                
-                // Last Reading (red if > 48 hours old)
-                var lastDiv = document.createElement("div");
-                var lastLabel = document.createElement("span");
-                lastLabel.innerHTML = "Last reading: ";
-                lastLabel.style.cssText = labelStyle;
-                var lastInfo = document.createElement("span");
-                lastInfo.innerHTML = tank.lastReadingDate;
-                var lastReadingStyle = defaultInfoStyle;
-                if (tank.lastReadingDate && tank.lastReadingDate !== "N/A") {
-                    var readingDateObj = new Date(tank.lastReadingDate);
-                    var now = new Date();
-                    if ((now - readingDateObj) > 48 * 3600 * 1000) { // More than 48 hours old
-                        lastReadingStyle = errorStyle;
-                    }
-                }
-                lastInfo.style.cssText = lastReadingStyle;
-                lastDiv.appendChild(lastLabel);
-                lastDiv.appendChild(lastInfo);
-                tankWrapper.appendChild(lastDiv);
-                
-                // Expected empty (red if within 4 weeks)
-                var expectedDiv = document.createElement("div");
-                var expectedLabel = document.createElement("span");
-                expectedLabel.innerHTML = "Expected empty: ";
-                expectedLabel.style.cssText = labelStyle;
-                var expectedInfo = document.createElement("span");
-                expectedInfo.innerHTML = tank.runOutDate;
-                var expectedStyle = defaultInfoStyle;
-                if (tank.rawRunOutDate && tank.rawRunOutDate !== "N/A") {
-                    var runOutDateObj = new Date(tank.rawRunOutDate);
-                    var now = new Date();
-                    if ((runOutDateObj - now) <= 28 * 24 * 3600 * 1000) { // Within 4 weeks
-                        expectedStyle = errorStyle;
-                    }
-                }
-                expectedInfo.style.cssText = expectedStyle;
-                expectedDiv.appendChild(expectedLabel);
-                expectedDiv.appendChild(expectedInfo);
-                tankWrapper.appendChild(expectedDiv);
-            }
-            
-            wrapper.appendChild(tankWrapper);
-        });
-        
-        return wrapper;
     }
 });
