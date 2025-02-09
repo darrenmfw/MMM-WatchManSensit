@@ -82,8 +82,8 @@ module.exports = NodeHelper.create({
                                 }
                                 
                                 var levelElement = resultData.Level;
-                                // Check that LevelPercentage exists and, after trimming, is not equal to "-1"
-                                if (levelElement && levelElement.LevelPercentage && parseFloat(levelElement.LevelPercentage.trim()) !== -1) {
+                                // Accept valid data if LevelPercentage exists and is >= 0.
+                                if (levelElement && levelElement.LevelPercentage && parseFloat(levelElement.LevelPercentage.trim()) >= 0) {
                                     var fillLevel = levelElement.LevelPercentage;
                                     var readingDate = levelElement.ReadingDate;
                                     var runOutDate = levelElement.RunOutDate;
