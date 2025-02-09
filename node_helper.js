@@ -5,20 +5,18 @@ var xml2js = require("xml2js");
 module.exports = NodeHelper.create({
     updateLatestLevel: function(config) {
         var self = this;
-        // For multi-tank support, we iterate over config.tanks.
         var tanks = config.tanks;
         if (!tanks || !Array.isArray(tanks) || tanks.length === 0) {
             self.sendSocketNotification("WATCHMAN_DATA_RESPONSE", []);
             return;
         }
-        // We'll store results in an array.
-        var results = [];
+        // Array to store only valid tank results.
+        var validResults = [];
         var completedRequests = 0;
+        var totalRequests = Math.min(tanks.length, 3);
 
         // Process each tank individually (limit to three tanks).
         tanks.slice(0, 3).forEach(function(tankConfig, index) {
-            // Build the SOAP envelope using the tank's serial number.
-            // The user ID is "BOX" + serialNumber and signalman number is the serialNumber.
             var userId = "BOX" + tankConfig.serialNumber;
             var signalmanNo = tankConfig.serialNumber;
             
@@ -62,22 +60,22 @@ module.exports = NodeHelper.create({
                     });
                     parser.parseString(data, function(err, result) {
                         if (err) {
-                            results[index] = { tankName: tankConfig.tankName, error: "XML parse error: " + err };
+                            console.error("XML parse error for tank " + tankConfig.serialNumber + ": " + err);
                         } else {
                             try {
                                 var envelope = result.Envelope;
                                 var body = envelope.Body;
                                 var response = body.SoapMobileAPPGetLatestLevel_v3Response;
                                 var resultData = response.SoapMobileAPPGetLatestLevel_v3Result;
-                                
                                 var levelElement = resultData.Level;
-                                // Only accept valid data if LevelPercentage is present and non-negative.
-                                if (levelElement && levelElement.LevelPercentage && parseFloat(levelElement.LevelPercentage) >= 0) {
+                                
+                                // Only accept data if LevelPercentage is present and > 0.
+                                if (levelElement && levelElement.LevelPercentage && parseFloat(levelElement.LevelPercentage) > 0) {
                                     var fillLevel = levelElement.LevelPercentage;
                                     var readingDate = levelElement.ReadingDate;
                                     var runOutDate = levelElement.RunOutDate;
                                     
-                                    // Format the reading date (2-digit year, no seconds).
+                                    // Format the reading date (2-digit year, no seconds)
                                     var d = new Date(readingDate);
                                     var formattedReadingDate = d.toLocaleString("en-GB", {
                                         year: '2-digit',
@@ -98,34 +96,34 @@ module.exports = NodeHelper.create({
                                         });
                                     }
                                     
-                                    results[index] = {
+                                    validResults.push({
                                         tankName: tankConfig.tankName,
                                         fillLevel: fillLevel + "%",
                                         lastReadingDate: formattedReadingDate,
                                         runOutDate: formattedRunOutDate,
                                         rawRunOutDate: runOutDate
-                                    };
+                                    });
                                 } else {
-                                    results[index] = { tankName: tankConfig.tankName, error: "No valid level data" };
+                                    console.log("Tank " + tankConfig.serialNumber + " has no valid level data; skipping.");
                                 }
                             } catch (ex) {
-                                results[index] = { tankName: tankConfig.tankName, error: "Error extracting data: " + ex };
+                                console.error("Error extracting data for tank " + tankConfig.serialNumber + ": " + ex);
                             }
                         }
                         completedRequests++;
-                        if (completedRequests === tanks.slice(0, 3).length) {
-                            // Send the aggregated results to the front-end.
-                            self.sendSocketNotification("WATCHMAN_DATA_RESPONSE", results);
+                        if (completedRequests === totalRequests) {
+                            // All requests are complete: send only valid results.
+                            self.sendSocketNotification("WATCHMAN_DATA_RESPONSE", validResults);
                         }
                     });
                 });
             });
             
             req.on("error", function(err) {
-                results[index] = { tankName: tankConfig.tankName, error: "HTTP error: " + err };
+                console.error("HTTP error for tank " + tankConfig.serialNumber + ": " + err);
                 completedRequests++;
-                if (completedRequests === tanks.slice(0, 3).length) {
-                    self.sendSocketNotification("WATCHMAN_DATA_RESPONSE", results);
+                if (completedRequests === totalRequests) {
+                    self.sendSocketNotification("WATCHMAN_DATA_RESPONSE", validResults);
                 }
             });
             
