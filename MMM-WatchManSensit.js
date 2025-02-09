@@ -8,15 +8,15 @@ Module.register("MMM-WatchManSensit", {
         // Array of tank configurations (up to three tanks)
         tanks: [
             {
-                serialNumber: "12345678", // Example serial number.
+                serialNumber: "12345678", // Example serial number for tank 1.
                 tankName: "Main Tank"
             },
             {
-                serialNumber: "87654321", // Example serial number.
+                serialNumber: "87654321", // Example serial number for tank 2.
                 tankName: "Secondary Tank"
             },
             {
-                serialNumber: "11223344", // Example serial number.
+                serialNumber: "11223344", // Example serial number for tank 3.
                 tankName: "Tertiary Tank"
             }
         ]
@@ -58,7 +58,7 @@ Module.register("MMM-WatchManSensit", {
         
         // Iterate over each tank and create a display block if valid.
         this.dataReceived.forEach(function(tank) {
-            // Skip tanks that have an error or missing fillLevel.
+            // Skip tanks that have an error or invalid fill level.
             if (tank.error || !tank.fillLevel || tank.fillLevel === "N/A") {
                 return;
             }
@@ -92,7 +92,7 @@ Module.register("MMM-WatchManSensit", {
             fillDiv.appendChild(fillInfo);
             tankWrapper.appendChild(fillDiv);
             
-            // Last Reading (red if more than 48 hours old)
+            // Last Reading (labeled "Last reading:"; red if more than 48 hours old)
             var lastDiv = document.createElement("div");
             var lastLabel = document.createElement("span");
             lastLabel.innerHTML = "Last reading: ";
@@ -123,7 +123,7 @@ Module.register("MMM-WatchManSensit", {
             if (tank.rawRunOutDate && tank.rawRunOutDate !== "N/A") {
                 var runOutDateObj = new Date(tank.rawRunOutDate);
                 var now = new Date();
-                // If the run out date is within 4 weeks (28 days) from now, mark it red.
+                // Mark as red if expected empty date is within 4 weeks (28 days) from now.
                 if ((runOutDateObj - now) <= 28 * 24 * 3600 * 1000) {
                     expectedStyle = "color: red;";
                 }
