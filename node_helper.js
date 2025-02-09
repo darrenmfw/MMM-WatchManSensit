@@ -10,12 +10,11 @@ module.exports = NodeHelper.create({
             self.sendSocketNotification("WATCHMAN_DATA_RESPONSE", []);
             return;
         }
-        // Array to store only valid tank results.
-        var validResults = [];
+        // We'll store results for each tank, even if it's an error.
+        var results = [];
         var completedRequests = 0;
         var totalRequests = Math.min(tanks.length, 3);
 
-        // Process each tank individually (limit to three tanks).
         tanks.slice(0, 3).forEach(function(tankConfig, index) {
             var userId = "BOX" + tankConfig.serialNumber;
             var signalmanNo = tankConfig.serialNumber;
@@ -60,7 +59,7 @@ module.exports = NodeHelper.create({
                     });
                     parser.parseString(data, function(err, result) {
                         if (err) {
-                            console.error("XML parse error for tank " + tankConfig.serialNumber + ": " + err);
+                            results[index] = { tankName: tankConfig.tankName, error: "XML parse error: " + err };
                         } else {
                             try {
                                 var envelope = result.Envelope;
@@ -68,61 +67,66 @@ module.exports = NodeHelper.create({
                                 var response = body.SoapMobileAPPGetLatestLevel_v3Response;
                                 var resultData = response.SoapMobileAPPGetLatestLevel_v3Result;
                                 var levelElement = resultData.Level;
-                                // Consider data valid if LevelPercentage exists and is not exactly -1.
-                                if (levelElement && levelElement.LevelPercentage && parseFloat(levelElement.LevelPercentage) !== -1) {
-                                    var fillLevel = levelElement.LevelPercentage;
-                                    var readingDate = levelElement.ReadingDate;
-                                    var runOutDate = levelElement.RunOutDate;
-                                    
-                                    // Format the reading date (2-digit year, no seconds)
-                                    var d = new Date(readingDate);
-                                    var formattedReadingDate = d.toLocaleString("en-GB", {
-                                        year: '2-digit',
-                                        month: '2-digit',
-                                        day: '2-digit',
-                                        hour: '2-digit',
-                                        minute: '2-digit'
-                                    });
-                                    
-                                    // Format the run out date as date only (2-digit year) if valid.
-                                    var formattedRunOutDate = "";
-                                    if (runOutDate && runOutDate !== "0001-01-01T00:00:00") {
-                                        var dRun = new Date(runOutDate);
-                                        formattedRunOutDate = dRun.toLocaleDateString("en-GB", {
+                                
+                                if (levelElement && levelElement.LevelPercentage) {
+                                    var percentage = parseFloat(levelElement.LevelPercentage);
+                                    if (percentage === -1) {
+                                        // Return error if the fill level is -1.
+                                        results[index] = { tankName: tankConfig.tankName, error: "No valid data" };
+                                    } else {
+                                        var fillLevel = levelElement.LevelPercentage;
+                                        var readingDate = levelElement.ReadingDate;
+                                        var runOutDate = levelElement.RunOutDate;
+                                        
+                                        // Format the reading date (2-digit year, no seconds)
+                                        var d = new Date(readingDate);
+                                        var formattedReadingDate = d.toLocaleString("en-GB", {
                                             year: '2-digit',
                                             month: '2-digit',
-                                            day: '2-digit'
+                                            day: '2-digit',
+                                            hour: '2-digit',
+                                            minute: '2-digit'
                                         });
+                                        
+                                        // Format the run out date as date only (2-digit year) if valid.
+                                        var formattedRunOutDate = "";
+                                        if (runOutDate && runOutDate !== "0001-01-01T00:00:00") {
+                                            var dRun = new Date(runOutDate);
+                                            formattedRunOutDate = dRun.toLocaleDateString("en-GB", {
+                                                year: '2-digit',
+                                                month: '2-digit',
+                                                day: '2-digit'
+                                            });
+                                        }
+                                        
+                                        results[index] = {
+                                            tankName: tankConfig.tankName,
+                                            fillLevel: fillLevel + "%",
+                                            lastReadingDate: formattedReadingDate,
+                                            runOutDate: formattedRunOutDate,
+                                            rawRunOutDate: runOutDate
+                                        };
                                     }
-                                    
-                                    validResults.push({
-                                        tankName: tankConfig.tankName,
-                                        fillLevel: fillLevel + "%",
-                                        lastReadingDate: formattedReadingDate,
-                                        runOutDate: formattedRunOutDate,
-                                        rawRunOutDate: runOutDate
-                                    });
                                 } else {
-                                    console.log("Tank " + tankConfig.serialNumber + " has no valid level data; skipping.");
+                                    results[index] = { tankName: tankConfig.tankName, error: "No valid level data" };
                                 }
                             } catch (ex) {
-                                console.error("Error extracting data for tank " + tankConfig.serialNumber + ": " + ex);
+                                results[index] = { tankName: tankConfig.tankName, error: "Error extracting data: " + ex };
                             }
                         }
                         completedRequests++;
                         if (completedRequests === totalRequests) {
-                            // All requests complete: send only valid results.
-                            self.sendSocketNotification("WATCHMAN_DATA_RESPONSE", validResults);
+                            self.sendSocketNotification("WATCHMAN_DATA_RESPONSE", results);
                         }
                     });
                 });
             });
             
             req.on("error", function(err) {
-                console.error("HTTP error for tank " + tankConfig.serialNumber + ": " + err);
+                results[index] = { tankName: tankConfig.tankName, error: "HTTP error: " + err };
                 completedRequests++;
                 if (completedRequests === totalRequests) {
-                    self.sendSocketNotification("WATCHMAN_DATA_RESPONSE", validResults);
+                    self.sendSocketNotification("WATCHMAN_DATA_RESPONSE", results);
                 }
             });
             
