@@ -69,7 +69,7 @@ Module.register("MMM-WatchManSensit", {
             nameDiv.appendChild(nameInfo);
             tankWrapper.appendChild(nameDiv);
             
-            // If error, display error message.
+            // If there's an error, display it.
             if (tank.error) {
                 var errorDiv = document.createElement("div");
                 errorDiv.innerHTML = "Error: " + tank.error;
@@ -88,7 +88,7 @@ Module.register("MMM-WatchManSensit", {
                 fillDiv.appendChild(fillInfo);
                 tankWrapper.appendChild(fillDiv);
                 
-                // Last Reading (red if > 48 hours old)
+                // Last Reading (red if more than 48 hours old)
                 var lastDiv = document.createElement("div");
                 var lastLabel = document.createElement("span");
                 lastLabel.innerHTML = "Last reading: ";
@@ -99,7 +99,7 @@ Module.register("MMM-WatchManSensit", {
                 if (tank.lastReadingDate && tank.lastReadingDate !== "N/A") {
                     var readingDateObj = new Date(tank.lastReadingDate);
                     var now = new Date();
-                    if ((now - readingDateObj) > 48 * 3600 * 1000) {
+                    if ((now - readingDateObj) > 48 * 3600 * 1000) { // More than 48 hours old
                         lastReadingStyle = errorStyle;
                     }
                 }
@@ -119,7 +119,7 @@ Module.register("MMM-WatchManSensit", {
                 if (tank.rawRunOutDate && tank.rawRunOutDate !== "N/A") {
                     var runOutDateObj = new Date(tank.rawRunOutDate);
                     var now = new Date();
-                    if ((runOutDateObj - now) <= 28 * 24 * 3600 * 1000) {
+                    if ((runOutDateObj - now) <= 28 * 24 * 3600 * 1000) { // Within 4 weeks
                         expectedStyle = errorStyle;
                     }
                 }
