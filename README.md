@@ -3,15 +3,13 @@
 **Release Date:** February 2025
 
 ## Overview
-MMM-WatchManSensit v1.1.1 builds on the multi‑tank support introduced in v1.1.0 by adding a new data line for displaying the tank’s remaining litres and introducing per-data-line visibility functionality. In this release, each tank is defined by a single serial number and a tank name. The module uses the serial number of the first tank (Tank 1) to construct the user ID (by prepending "BOX") for all SOAP requests, while each tank’s own serial number is used as its signalman number. **IMPORTANT:** The first tank's serial number MUST be the one from the first tank set up in the app.
+MMM-WatchManSensit v1.1.1 builds on the multi‑tank support introduced in v1.1.0 by adding a new data line for displaying the tank’s remaining litres and introducing per-data-line visibility functionality. In this release, each tank is defined by a single serial number and a tank name. The module uses the serial number from the first tank (Tank 1) to construct the user ID (by prepending "BOX") for all SOAP requests, while each tank’s own serial number is used as its signalman number. **IMPORTANT:** The first tank's serial number MUST be the one from the first tank set up in the app.
 
-For each tank, the module now retrieves and displays:
+The module communicates with the Kingspan Watchman SENSiT service via SOAP requests to retrieve live data. For each tank, it retrieves and displays:
 - **Fill level:** e.g. "85%"
 - **Litres remaining:** e.g. "2087 L"
-- **Last reading:** The timestamp when the tank was last read (formatted without seconds, with a 2-digit year)
-- **Expected empty:** The expected run‑out date (formatted as date-only with a 2-digit year)
-
-Each tank configuration now supports optional visibility flags that let you hide any data line on a per-tank basis.
+- **Last reading:** The timestamp when the tank was last read (formatted without seconds, with a 2‑digit year)
+- **Expected empty:** The run‑out date (formatted as date-only with a 2‑digit year)
 
 Conditional formatting is applied:
 - Labels are grey.
@@ -34,7 +32,7 @@ Conditional formatting is applied:
     - `displayExpectedEmpty` – shows or hides the "Expected empty:" line.
   - If these flags are omitted, they default to true.
 - **SOAP-Based Data Retrieval:**  
-  - Retrieves fill level, litres remaining, last reading timestamp, and expected empty (run-out) date for each tank.
+  - Retrieves fill level, litres remaining, last reading timestamp, and expected empty (run‑out) date for each tank.
 - **Conditional UI Display:**  
   - Displays an error if a tank returns invalid data.
   - Tanks with a blank serial number are omitted.
@@ -45,6 +43,8 @@ Conditional formatting is applied:
 - [MagicMirror²](https://magicmirror.builders/)
 - Node.js (included with the MagicMirror installation)
 - Internet connectivity to access the Connect Sensor SOAP service
+- **Important:** All tanks to be displayed on the module must be set up and working in the Watchman Connect app first.  
+  Download the Watchman Connect app from the [Apple App Store](https://www.apple.com/app-store/) or the [Google Play Store](https://play.google.com/store).
 
 ## Installation
 
