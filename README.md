@@ -44,7 +44,7 @@ Conditional formatting is applied:
 - Node.js (included with the MagicMirror installation)
 - Internet connectivity to access the Connect Sensor SOAP service
 - **Important:** All tanks to be displayed on the module must be set up and working in the Watchman Connect app first.  
-  Download the Watchman Connect app from the [Apple App Store](https://www.apple.com/app-store/) or the [Google Play Store](https://play.google.com/store).
+  Download the Watchman Connect app from the [Apple App Store](https://apps.apple.com/gb/app/watchman-connect/id1587348277) or [Google Play Store](https://play.google.com/store/apps/details?id=com.kingspankwe.watchmanconnect&hl=en_GB).
 
 ## Installation
 
