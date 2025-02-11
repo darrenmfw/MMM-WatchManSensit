@@ -83,6 +83,7 @@ Additionally, each tank configuration supports optional boolean flags to control
      position: "top_right", // Change this to your preferred location.
      config: {
        updateInterval: 3600000, // Update every 1 hour.
+       width: "auto", // Set a custom width for the module (e.g., "300px" or "50%"). The default is "auto".
        // Configure each tank below.
        // IMPORTANT: The first tank's serial number MUST be the one from the first tank set up in the app.
        // That serial is used to build the user ID ("BOX" + Tank1.serialNumber) for all SOAP requests.
@@ -120,6 +121,8 @@ Additionally, each tank configuration supports optional boolean flags to control
      }
    }
    ```
+
+   **Note:** The `width` property sets the module container's width. By default, it is set to `"auto"`, which means it will automatically adapt to the container defined by your theme. You can override this by specifying a fixed width (e.g., `"300px"`) or a percentage (e.g., `"50%"`).
 
 4. **Restart MagicMirror**
 
