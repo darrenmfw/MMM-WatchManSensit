@@ -2,20 +2,36 @@ Module.register("MMM-WatchManSensit", {
 
     defaults: {
         updateInterval: 3600000,   // Update every 1 hour.
+        width: "auto", // Set a custom width for the module (e.g., "300px" or "50%"). The default is "auto".
         password: "Password1!",    // Shared password for all tanks.
         culture: "en",             // Culture/language parameter.
         tanks: [
             {
-                serialNumber: "20026081", // Tank 1 serial (used for user ID as well)
-                tankName: "Main Tank"
+                serialNumber: "12345678", // Tank 1 serial (used for both user ID and signalman for Tank 1)
+                tankName: "Main Tank",
+                displayFillLevel: true,
+                displayQuantityRemaining: true,
+                displayConsumption: true,
+                displayLastReading: true,
+                displayExpectedEmpty: true
             },
             {
-                serialNumber: "87654321", // Tank 2 serial (user ID from tank 1 is used)
-                tankName: "Secondary Tank"
+                serialNumber: "87654321", // Tank 2 serial (user ID from Tank 1 is used for this tank)
+                tankName: "Secondary Tank",
+                displayFillLevel: true,
+                displayQuantityRemaining: true,
+                displayConsumption: true,
+                displayLastReading: true,
+                displayExpectedEmpty: true
             },
             {
-                serialNumber: "",         // Blank serial; this tank will be skipped.
-                tankName: "Tertiary Tank"
+                serialNumber: "",         // Blank serial; this tank will be omitted.
+                tankName: "Tertiary Tank",
+                displayFillLevel: true,
+                displayQuantityRemaining: true,
+                displayConsumption: true,
+                displayLastReading: true,
+                displayExpectedEmpty: true
             }
         ]
     },
@@ -39,8 +55,33 @@ Module.register("MMM-WatchManSensit", {
         }
     },
 
+    // Helper function to create a row with flex styling.
+    createRow: function(labelText, dataText, labelStyle, dataStyle) {
+        var row = document.createElement("div");
+        row.style.display = "flex";
+        row.style.justifyContent = "space-between";
+        row.style.width = "100%";
+        
+        var label = document.createElement("span");
+        label.innerHTML = labelText;
+        label.style.cssText = labelStyle;
+        
+        var data = document.createElement("span");
+        data.innerHTML = dataText;
+        data.style.cssText = dataStyle;
+        
+        row.appendChild(label);
+        row.appendChild(data);
+        return row;
+    },
+
     getDom: function() {
         var wrapper = document.createElement("div");
+        
+        // Set the custom width if provided.
+        if (this.config.width) {
+            wrapper.style.width = this.config.width;
+        }
         
         if (!this.dataReceived || this.dataReceived.length === 0) {
             wrapper.innerHTML = "No tank data available.";
@@ -57,80 +98,71 @@ Module.register("MMM-WatchManSensit", {
             tankWrapper.style.paddingBottom = "5px";
             tankWrapper.style.borderBottom = "1px solid grey";
             
-            // Tank Name
-            var nameDiv = document.createElement("div");
-            var nameLabel = document.createElement("span");
-            nameLabel.innerHTML = "Tank: ";
-            nameLabel.style.cssText = labelStyle;
-            var nameInfo = document.createElement("span");
-            nameInfo.innerHTML = tank.tankName;
-            nameInfo.style.cssText = defaultInfoStyle;
-            nameDiv.appendChild(nameLabel);
-            nameDiv.appendChild(nameInfo);
-            tankWrapper.appendChild(nameDiv);
+            // Tank Name (always displayed)
+            tankWrapper.appendChild(
+                this.createRow("Tank:", tank.tankName, labelStyle, defaultInfoStyle)
+            );
             
-            // If error, display error message.
+            // If there's an error, display it and skip the rest.
             if (tank.error) {
-                var errorDiv = document.createElement("div");
-                errorDiv.innerHTML = "Error: " + tank.error;
-                errorDiv.style.cssText = errorStyle;
-                tankWrapper.appendChild(errorDiv);
+                tankWrapper.appendChild(
+                    this.createRow("Error:", tank.error, labelStyle, errorStyle)
+                );
             } else {
                 // Fill Level
-                var fillDiv = document.createElement("div");
-                var fillLabel = document.createElement("span");
-                fillLabel.innerHTML = "Fill level: ";
-                fillLabel.style.cssText = labelStyle;
-                var fillInfo = document.createElement("span");
-                fillInfo.innerHTML = tank.fillLevel;
-                fillInfo.style.cssText = defaultInfoStyle;
-                fillDiv.appendChild(fillLabel);
-                fillDiv.appendChild(fillInfo);
-                tankWrapper.appendChild(fillDiv);
-                
-                // Last Reading (red if > 48 hours old)
-                var lastDiv = document.createElement("div");
-                var lastLabel = document.createElement("span");
-                lastLabel.innerHTML = "Last reading: ";
-                lastLabel.style.cssText = labelStyle;
-                var lastInfo = document.createElement("span");
-                lastInfo.innerHTML = tank.lastReadingDate;
-                var lastReadingStyle = defaultInfoStyle;
-                if (tank.lastReadingDate && tank.lastReadingDate !== "N/A") {
-                    var readingDateObj = new Date(tank.lastReadingDate);
-                    var now = new Date();
-                    if ((now - readingDateObj) > 48 * 3600 * 1000) { // More than 48 hours old
-                        lastReadingStyle = errorStyle;
-                    }
+                if (tank.displayFillLevel) {
+                    tankWrapper.appendChild(
+                        this.createRow("Fill level:", tank.fillLevel, labelStyle, defaultInfoStyle)
+                    );
                 }
-                lastInfo.style.cssText = lastReadingStyle;
-                lastDiv.appendChild(lastLabel);
-                lastDiv.appendChild(lastInfo);
-                tankWrapper.appendChild(lastDiv);
                 
-                // Expected empty (red if within 4 weeks)
-                var expectedDiv = document.createElement("div");
-                var expectedLabel = document.createElement("span");
-                expectedLabel.innerHTML = "Expected empty: ";
-                expectedLabel.style.cssText = labelStyle;
-                var expectedInfo = document.createElement("span");
-                expectedInfo.innerHTML = tank.runOutDate;
-                var expectedStyle = defaultInfoStyle;
-                if (tank.rawRunOutDate && tank.rawRunOutDate !== "N/A") {
-                    var runOutDateObj = new Date(tank.rawRunOutDate);
-                    var now = new Date();
-                    if ((runOutDateObj - now) <= 28 * 24 * 3600 * 1000) { // Within 4 weeks
-                        expectedStyle = errorStyle;
-                    }
+                // Quantity remaining (formerly "Litres remaining:")
+                if (tank.displayQuantityRemaining) {
+                    tankWrapper.appendChild(
+                        this.createRow("Quantity remaining:", tank.litresRemaining, labelStyle, defaultInfoStyle)
+                    );
                 }
-                expectedInfo.style.cssText = expectedStyle;
-                expectedDiv.appendChild(expectedLabel);
-                expectedDiv.appendChild(expectedInfo);
-                tankWrapper.appendChild(expectedDiv);
+                
+                // Average use per day (Consumption Rate)
+                if (tank.displayConsumption) {
+                    tankWrapper.appendChild(
+                        this.createRow("Average use per day:", tank.consumptionRate, labelStyle, defaultInfoStyle)
+                    );
+                }
+                
+                // Last Reading: Format the date so that it shows time then date.
+                if (tank.displayLastReading) {
+                    var formattedLastReading = "N/A";
+                    if (tank.lastReadingDate && tank.lastReadingDate !== "N/A") {
+                        var d = new Date(tank.lastReadingDate);
+                        // Separate time and date:
+                        var formattedTime = d.toLocaleTimeString("en-GB", { hour: '2-digit', minute: '2-digit' });
+                        var formattedDate = d.toLocaleDateString("en-GB", { year: '2-digit', month: '2-digit', day: '2-digit' });
+                        formattedLastReading = formattedTime + ", " + formattedDate;
+                    }
+                    var lastReadingDataStyle = defaultInfoStyle;
+                    if (tank.lastReadingDate && tank.lastReadingDate !== "N/A") {
+                        var readingDateObj = new Date(tank.lastReadingDate);
+                        var now = new Date();
+                        if ((now - readingDateObj) > 48 * 3600 * 1000) { // More than 48 hours old
+                            lastReadingDataStyle = errorStyle;
+                        }
+                    }
+                    tankWrapper.appendChild(
+                        this.createRow("Last reading:", formattedLastReading, labelStyle, lastReadingDataStyle)
+                    );
+                }
+                
+                // Expected empty
+                if (tank.displayExpectedEmpty) {
+                    tankWrapper.appendChild(
+                        this.createRow("Expected empty:", tank.runOutDate, labelStyle, defaultInfoStyle)
+                    );
+                }
             }
             
             wrapper.appendChild(tankWrapper);
-        });
+        }, this); // Ensure proper scope for 'this'
         
         return wrapper;
     }

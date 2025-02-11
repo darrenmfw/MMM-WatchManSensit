@@ -10,11 +10,10 @@ module.exports = NodeHelper.create({
             self.sendSocketNotification("WATCHMAN_DATA_RESPONSE", []);
             return;
         }
-        // Filter out any tanks with a blank or missing serialNumber.
+        // Filter out tanks with a blank or missing serial number.
         var validTanks = tanks.filter(function(tank) {
             return tank.serialNumber && tank.serialNumber.trim() !== "";
         });
-        // Ensure we have at least one valid tank to use for the user id.
         if (validTanks.length === 0) {
             self.sendSocketNotification("WATCHMAN_DATA_RESPONSE", []);
             return;
@@ -22,18 +21,17 @@ module.exports = NodeHelper.create({
         var totalRequests = Math.min(validTanks.length, 3);
         var results = [];
         var completedRequests = 0;
-        // Use the first tank's serial number for the user id for all tanks.
+        // Use the first tank's serial for the user ID for all tanks.
         var primaryUserSerial = validTanks[0].serialNumber;
 
         validTanks.slice(0, 3).forEach(function(tankConfig, index) {
             var userId, signalmanNo;
             if (index === 0) {
-                // For the first tank, both user id and signalman come from its own serial.
+                // For tank 1, use its own serial for both.
                 userId = "BOX" + tankConfig.serialNumber;
                 signalmanNo = tankConfig.serialNumber;
             } else {
-                // For tanks 2 and 3, use the primary user serial for the user id,
-                // and the tank's own serial for the signalman number.
+                // For tanks 2 and 3, use primaryUserSerial for user ID and their own serial for signalman.
                 userId = "BOX" + primaryUserSerial;
                 signalmanNo = tankConfig.serialNumber;
             }
@@ -81,21 +79,13 @@ module.exports = NodeHelper.create({
                             results[index] = { tankName: tankConfig.tankName, error: "XML parse error: " + err };
                         } else {
                             try {
-                                if (!result.Envelope) {
-                                    throw new Error("Missing Envelope");
-                                }
+                                if (!result.Envelope) { throw new Error("Missing Envelope"); }
                                 var body = result.Envelope.Body;
-                                if (!body) {
-                                    throw new Error("Missing Body");
-                                }
+                                if (!body) { throw new Error("Missing Body"); }
                                 var response = body.SoapMobileAPPGetLatestLevel_v3Response;
-                                if (!response) {
-                                    throw new Error("Missing SoapMobileAPPGetLatestLevel_v3Response");
-                                }
+                                if (!response) { throw new Error("Missing SoapMobileAPPGetLatestLevel_v3Response"); }
                                 var resultData = response.SoapMobileAPPGetLatestLevel_v3Result;
-                                if (!resultData) {
-                                    throw new Error("Missing SoapMobileAPPGetLatestLevel_v3Result");
-                                }
+                                if (!resultData) { throw new Error("Missing SoapMobileAPPGetLatestLevel_v3Result"); }
                                 
                                 var levelElement = resultData.Level;
                                 // Accept valid data if LevelPercentage exists and is >= 0.
@@ -103,6 +93,8 @@ module.exports = NodeHelper.create({
                                     var fillLevel = levelElement.LevelPercentage;
                                     var readingDate = levelElement.ReadingDate;
                                     var runOutDate = levelElement.RunOutDate;
+                                    var litres = levelElement.LevelLitres || "N/A";
+                                    var consumption = levelElement.ConsumptionRate || "N/A";
                                     
                                     var d = new Date(readingDate);
                                     var formattedReadingDate = d.toLocaleString("en-GB", {
@@ -126,12 +118,27 @@ module.exports = NodeHelper.create({
                                     results[index] = {
                                         tankName: tankConfig.tankName,
                                         fillLevel: fillLevel + "%",
+                                        litresRemaining: litres + (litres !== "N/A" ? " L" : ""),
                                         lastReadingDate: formattedReadingDate,
                                         runOutDate: formattedRunOutDate,
-                                        rawRunOutDate: runOutDate
+                                        rawRunOutDate: runOutDate,
+                                        consumptionRate: consumption + (consumption !== "N/A" ? " L" : ""),
+                                        displayFillLevel: (tankConfig.displayFillLevel !== false),
+                                        displayQuantityRemaining: (tankConfig.displayQuantityRemaining !== false),
+                                        displayLastReading: (tankConfig.displayLastReading !== false),
+                                        displayExpectedEmpty: (tankConfig.displayExpectedEmpty !== false),
+                                        displayConsumption: (tankConfig.displayConsumption !== false)
                                     };
                                 } else {
-                                    results[index] = { tankName: tankConfig.tankName, error: "No valid level data" };
+                                    results[index] = {
+                                        tankName: tankConfig.tankName,
+                                        error: "No valid level data",
+                                        displayFillLevel: (tankConfig.displayFillLevel !== false),
+                                        displayQuantityRemaining: (tankConfig.displayQuantityRemaining !== false),
+                                        displayLastReading: (tankConfig.displayLastReading !== false),
+                                        displayExpectedEmpty: (tankConfig.displayExpectedEmpty !== false),
+                                        displayConsumption: (tankConfig.displayConsumption !== false)
+                                    };
                                 }
                             } catch (ex) {
                                 results[index] = { tankName: tankConfig.tankName, error: "Error extracting data: " + ex };
