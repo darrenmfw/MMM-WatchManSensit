@@ -2,8 +2,8 @@ Module.register("MMM-WatchManSensit", {
 
     defaults: {
         updateInterval: 3600000,   // Update every 1 hour.
+        width: "auto", // Set a custom width for the module (e.g., "300px" or "50%"). The default is "auto".
         password: "Password1!",    // Shared password for all tanks.
-        width: "auto",             // Set a custom width for the module (e.g., "300px" or "50%"). The default is "auto".
         culture: "en",             // Culture/language parameter.
         tanks: [
             {
@@ -78,12 +78,16 @@ Module.register("MMM-WatchManSensit", {
     getDom: function() {
         var wrapper = document.createElement("div");
         
+        // Set the custom width if provided.
+        if (this.config.width) {
+            wrapper.style.width = this.config.width;
+        }
+        
         if (!this.dataReceived || this.dataReceived.length === 0) {
             wrapper.innerHTML = "No tank data available.";
             return wrapper;
         }
         
-        // Define inline styles for labels and info.
         var labelStyle = "color: grey; margin-right: 5px;";
         var defaultInfoStyle = "color: white;";
         var errorStyle = "color: red;";
@@ -158,7 +162,7 @@ Module.register("MMM-WatchManSensit", {
             }
             
             wrapper.appendChild(tankWrapper);
-        }, this); // Pass this as second argument for proper scope
+        }, this); // Ensure proper scope for 'this'
         
         return wrapper;
     }
