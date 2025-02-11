@@ -4,8 +4,6 @@ Module.register("MMM-WatchManSensit", {
         updateInterval: 3600000,   // Update every 1 hour.
         password: "Password1!",    // Shared password for all tanks.
         culture: "en",             // Culture/language parameter.
-        // New custom width property. Default is "auto" (or you could use "100%")
-        width: "auto",  
         tanks: [
             {
                 serialNumber: "12345678", // Tank 1 serial (used for both user ID and signalman for Tank 1)
@@ -56,19 +54,35 @@ Module.register("MMM-WatchManSensit", {
         }
     },
 
+    // Helper function to create a row with flex styling.
+    createRow: function(labelText, dataText, labelStyle, dataStyle) {
+        var row = document.createElement("div");
+        row.style.display = "flex";
+        row.style.justifyContent = "space-between";
+        row.style.width = "100%";
+        
+        var label = document.createElement("span");
+        label.innerHTML = labelText;
+        label.style.cssText = labelStyle;
+        
+        var data = document.createElement("span");
+        data.innerHTML = dataText;
+        data.style.cssText = dataStyle;
+        
+        row.appendChild(label);
+        row.appendChild(data);
+        return row;
+    },
+
     getDom: function() {
         var wrapper = document.createElement("div");
-        
-        // Set custom width if provided in config.
-        if (this.config.width) {
-            wrapper.style.width = this.config.width;
-        }
         
         if (!this.dataReceived || this.dataReceived.length === 0) {
             wrapper.innerHTML = "No tank data available.";
             return wrapper;
         }
         
+        // Define inline styles for labels and info.
         var labelStyle = "color: grey; margin-right: 5px;";
         var defaultInfoStyle = "color: white;";
         var errorStyle = "color: red;";
@@ -79,114 +93,71 @@ Module.register("MMM-WatchManSensit", {
             tankWrapper.style.paddingBottom = "5px";
             tankWrapper.style.borderBottom = "1px solid grey";
             
-            // Tank Name
-            var nameDiv = document.createElement("div");
-            var nameLabel = document.createElement("span");
-            nameLabel.innerHTML = "Tank: ";
-            nameLabel.style.cssText = labelStyle;
-            var nameInfo = document.createElement("span");
-            nameInfo.innerHTML = tank.tankName;
-            nameInfo.style.cssText = defaultInfoStyle;
-            nameDiv.appendChild(nameLabel);
-            nameDiv.appendChild(nameInfo);
-            tankWrapper.appendChild(nameDiv);
+            // Tank Name (always displayed)
+            tankWrapper.appendChild(
+                this.createRow("Tank:", tank.tankName, labelStyle, defaultInfoStyle)
+            );
             
-            // If there's an error, display it.
+            // If there's an error, display it and skip the rest.
             if (tank.error) {
-                var errorDiv = document.createElement("div");
-                errorDiv.innerHTML = "Error: " + tank.error;
-                errorDiv.style.cssText = errorStyle;
-                tankWrapper.appendChild(errorDiv);
+                tankWrapper.appendChild(
+                    this.createRow("Error:", tank.error, labelStyle, errorStyle)
+                );
             } else {
                 // Fill Level
                 if (tank.displayFillLevel) {
-                    var fillDiv = document.createElement("div");
-                    var fillLabel = document.createElement("span");
-                    fillLabel.innerHTML = "Fill level: ";
-                    fillLabel.style.cssText = labelStyle;
-                    var fillInfo = document.createElement("span");
-                    fillInfo.innerHTML = tank.fillLevel;
-                    fillInfo.style.cssText = defaultInfoStyle;
-                    fillDiv.appendChild(fillLabel);
-                    fillDiv.appendChild(fillInfo);
-                    tankWrapper.appendChild(fillDiv);
+                    tankWrapper.appendChild(
+                        this.createRow("Fill level:", tank.fillLevel, labelStyle, defaultInfoStyle)
+                    );
                 }
                 
-                // Quantity remaining
+                // Quantity remaining (formerly "Litres remaining:")
                 if (tank.displayQuantityRemaining) {
-                    var qtyDiv = document.createElement("div");
-                    var qtyLabel = document.createElement("span");
-                    qtyLabel.innerHTML = "Quantity remaining: ";
-                    qtyLabel.style.cssText = labelStyle;
-                    var qtyInfo = document.createElement("span");
-                    qtyInfo.innerHTML = tank.litresRemaining;
-                    qtyInfo.style.cssText = defaultInfoStyle;
-                    qtyDiv.appendChild(qtyLabel);
-                    qtyDiv.appendChild(qtyInfo);
-                    tankWrapper.appendChild(qtyDiv);
+                    tankWrapper.appendChild(
+                        this.createRow("Quantity remaining:", tank.litresRemaining, labelStyle, defaultInfoStyle)
+                    );
                 }
                 
                 // Average use per day (Consumption Rate)
                 if (tank.displayConsumption) {
-                    var consDiv = document.createElement("div");
-                    var consLabel = document.createElement("span");
-                    consLabel.innerHTML = "Average use per day: ";
-                    consLabel.style.cssText = labelStyle;
-                    var consInfo = document.createElement("span");
-                    consInfo.innerHTML = tank.consumptionRate;
-                    consInfo.style.cssText = defaultInfoStyle;
-                    consDiv.appendChild(consLabel);
-                    consDiv.appendChild(consInfo);
-                    tankWrapper.appendChild(consDiv);
+                    tankWrapper.appendChild(
+                        this.createRow("Average use per day:", tank.consumptionRate, labelStyle, defaultInfoStyle)
+                    );
                 }
                 
-                // Last Reading
+                // Last Reading: Format the date so that it shows time then date.
                 if (tank.displayLastReading) {
-                    var lastDiv = document.createElement("div");
-                    var lastLabel = document.createElement("span");
-                    lastLabel.innerHTML = "Last reading: ";
-                    lastLabel.style.cssText = labelStyle;
-                    var lastInfo = document.createElement("span");
-                    lastInfo.innerHTML = tank.lastReadingDate;
-                    var lastReadingStyle = defaultInfoStyle;
+                    var formattedLastReading = "N/A";
+                    if (tank.lastReadingDate && tank.lastReadingDate !== "N/A") {
+                        var d = new Date(tank.lastReadingDate);
+                        // Separate time and date:
+                        var formattedTime = d.toLocaleTimeString("en-GB", { hour: '2-digit', minute: '2-digit' });
+                        var formattedDate = d.toLocaleDateString("en-GB", { year: '2-digit', month: '2-digit', day: '2-digit' });
+                        formattedLastReading = formattedTime + ", " + formattedDate;
+                    }
+                    var lastReadingDataStyle = defaultInfoStyle;
                     if (tank.lastReadingDate && tank.lastReadingDate !== "N/A") {
                         var readingDateObj = new Date(tank.lastReadingDate);
                         var now = new Date();
-                        if ((now - readingDateObj) > 48 * 3600 * 1000) {
-                            lastReadingStyle = errorStyle;
+                        if ((now - readingDateObj) > 48 * 3600 * 1000) { // More than 48 hours old
+                            lastReadingDataStyle = errorStyle;
                         }
                     }
-                    lastInfo.style.cssText = lastReadingStyle;
-                    lastDiv.appendChild(lastLabel);
-                    lastDiv.appendChild(lastInfo);
-                    tankWrapper.appendChild(lastDiv);
+                    tankWrapper.appendChild(
+                        this.createRow("Last reading:", formattedLastReading, labelStyle, lastReadingDataStyle)
+                    );
                 }
                 
                 // Expected empty
                 if (tank.displayExpectedEmpty) {
-                    var expectedDiv = document.createElement("div");
-                    var expectedLabel = document.createElement("span");
-                    expectedLabel.innerHTML = "Expected empty: ";
-                    expectedLabel.style.cssText = labelStyle;
-                    var expectedInfo = document.createElement("span");
-                    expectedInfo.innerHTML = tank.runOutDate;
-                    var expectedStyle = defaultInfoStyle;
-                    if (tank.rawRunOutDate && tank.rawRunOutDate !== "N/A") {
-                        var runOutDateObj = new Date(tank.rawRunOutDate);
-                        var now = new Date();
-                        if ((runOutDateObj - now) <= 28 * 24 * 3600 * 1000) {
-                            expectedStyle = errorStyle;
-                        }
-                    }
-                    expectedInfo.style.cssText = expectedStyle;
-                    expectedDiv.appendChild(expectedLabel);
-                    expectedDiv.appendChild(expectedInfo);
-                    tankWrapper.appendChild(expectedDiv);
+                    tankWrapper.appendChild(
+                        this.createRow("Expected empty:", tank.runOutDate, labelStyle, defaultInfoStyle)
+                    );
                 }
             }
             
             wrapper.appendChild(tankWrapper);
-        });
+        }, this); // Pass this as second argument for proper scope
         
         return wrapper;
     }
