@@ -3,6 +3,7 @@ Module.register("MMM-WatchManSensit", {
     defaults: {
         updateInterval: 3600000,   // Update every 1 hour.
         password: "Password1!",    // Shared password for all tanks.
+        width: "auto",             // Set a custom width for the module (e.g., "300px" or "50%"). The default is "auto".
         culture: "en",             // Culture/language parameter.
         tanks: [
             {
