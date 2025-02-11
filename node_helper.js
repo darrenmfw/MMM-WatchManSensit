@@ -27,11 +27,11 @@ module.exports = NodeHelper.create({
         validTanks.slice(0, 3).forEach(function(tankConfig, index) {
             var userId, signalmanNo;
             if (index === 0) {
-                // For tank 1, use its own serial for both fields.
+                // For tank 1, use its own serial for both.
                 userId = "BOX" + tankConfig.serialNumber;
                 signalmanNo = tankConfig.serialNumber;
             } else {
-                // For tanks 2 and 3, use primaryUserSerial for user ID and the tank’s own serial for signalman.
+                // For tanks 2 and 3, use primaryUserSerial for user ID and their own serial for signalman.
                 userId = "BOX" + primaryUserSerial;
                 signalmanNo = tankConfig.serialNumber;
             }
@@ -79,21 +79,13 @@ module.exports = NodeHelper.create({
                             results[index] = { tankName: tankConfig.tankName, error: "XML parse error: " + err };
                         } else {
                             try {
-                                if (!result.Envelope) {
-                                    throw new Error("Missing Envelope");
-                                }
+                                if (!result.Envelope) { throw new Error("Missing Envelope"); }
                                 var body = result.Envelope.Body;
-                                if (!body) {
-                                    throw new Error("Missing Body");
-                                }
+                                if (!body) { throw new Error("Missing Body"); }
                                 var response = body.SoapMobileAPPGetLatestLevel_v3Response;
-                                if (!response) {
-                                    throw new Error("Missing SoapMobileAPPGetLatestLevel_v3Response");
-                                }
+                                if (!response) { throw new Error("Missing SoapMobileAPPGetLatestLevel_v3Response"); }
                                 var resultData = response.SoapMobileAPPGetLatestLevel_v3Result;
-                                if (!resultData) {
-                                    throw new Error("Missing SoapMobileAPPGetLatestLevel_v3Result");
-                                }
+                                if (!resultData) { throw new Error("Missing SoapMobileAPPGetLatestLevel_v3Result"); }
                                 
                                 var levelElement = resultData.Level;
                                 // Accept valid data if LevelPercentage exists and is >= 0.
@@ -102,6 +94,7 @@ module.exports = NodeHelper.create({
                                     var readingDate = levelElement.ReadingDate;
                                     var runOutDate = levelElement.RunOutDate;
                                     var litres = levelElement.LevelLitres || "N/A";
+                                    var consumption = levelElement.ConsumptionRate || "N/A";
                                     
                                     var d = new Date(readingDate);
                                     var formattedReadingDate = d.toLocaleString("en-GB", {
@@ -122,7 +115,6 @@ module.exports = NodeHelper.create({
                                         });
                                     }
                                     
-                                    // Add the display flags from the tank config.
                                     results[index] = {
                                         tankName: tankConfig.tankName,
                                         fillLevel: fillLevel + "%",
@@ -130,19 +122,22 @@ module.exports = NodeHelper.create({
                                         lastReadingDate: formattedReadingDate,
                                         runOutDate: formattedRunOutDate,
                                         rawRunOutDate: runOutDate,
+                                        consumptionRate: consumption + (consumption !== "N/A" ? " L" : ""),
                                         displayFillLevel: (tankConfig.displayFillLevel !== false),
-                                        displayLitresRemaining: (tankConfig.displayLitresRemaining !== false),
+                                        displayQuantityRemaining: (tankConfig.displayQuantityRemaining !== false),
                                         displayLastReading: (tankConfig.displayLastReading !== false),
-                                        displayExpectedEmpty: (tankConfig.displayExpectedEmpty !== false)
+                                        displayExpectedEmpty: (tankConfig.displayExpectedEmpty !== false),
+                                        displayConsumption: (tankConfig.displayConsumption !== false)
                                     };
                                 } else {
                                     results[index] = {
                                         tankName: tankConfig.tankName,
                                         error: "No valid level data",
                                         displayFillLevel: (tankConfig.displayFillLevel !== false),
-                                        displayLitresRemaining: (tankConfig.displayLitresRemaining !== false),
+                                        displayQuantityRemaining: (tankConfig.displayQuantityRemaining !== false),
                                         displayLastReading: (tankConfig.displayLastReading !== false),
-                                        displayExpectedEmpty: (tankConfig.displayExpectedEmpty !== false)
+                                        displayExpectedEmpty: (tankConfig.displayExpectedEmpty !== false),
+                                        displayConsumption: (tankConfig.displayConsumption !== false)
                                     };
                                 }
                             } catch (ex) {
