@@ -6,29 +6,31 @@ Module.register("MMM-WatchManSensit", {
         culture: "en",             // Culture/language parameter.
         tanks: [
             {
-                serialNumber: "20026081", // Tank 1 serial (used for both user ID and signalman for Tank 1)
+                serialNumber: "12345678", // Tank 1 serial (used for both user ID and signalman for Tank 1)
                 tankName: "Main Tank",
-                // Data line visibility (default true if not set)
                 displayFillLevel: true,
-                displayLitresRemaining: true,
+                displayQuantityRemaining: true,
                 displayLastReading: true,
-                displayExpectedEmpty: true
+                displayExpectedEmpty: true,
+                displayConsumption: true
             },
             {
                 serialNumber: "87654321", // Tank 2 serial (user ID from Tank 1 is used for this tank)
                 tankName: "Secondary Tank",
                 displayFillLevel: true,
-                displayLitresRemaining: true,
+                displayQuantityRemaining: true,
                 displayLastReading: true,
-                displayExpectedEmpty: true
+                displayExpectedEmpty: true,
+                displayConsumption: true
             },
             {
                 serialNumber: "",         // Blank serial; this tank will be omitted.
                 tankName: "Tertiary Tank",
                 displayFillLevel: true,
-                displayLitresRemaining: true,
+                displayQuantityRemaining: true,
                 displayLastReading: true,
-                displayExpectedEmpty: true
+                displayExpectedEmpty: true,
+                displayConsumption: true
             }
         ]
     },
@@ -82,7 +84,7 @@ Module.register("MMM-WatchManSensit", {
             nameDiv.appendChild(nameInfo);
             tankWrapper.appendChild(nameDiv);
             
-            // If there's an error, display it and skip the rest.
+            // If there's an error, display it.
             if (tank.error) {
                 var errorDiv = document.createElement("div");
                 errorDiv.innerHTML = "Error: " + tank.error;
@@ -103,21 +105,35 @@ Module.register("MMM-WatchManSensit", {
                     tankWrapper.appendChild(fillDiv);
                 }
                 
-                // Litres remaining
-                if (tank.displayLitresRemaining) {
-                    var litresDiv = document.createElement("div");
-                    var litresLabel = document.createElement("span");
-                    litresLabel.innerHTML = "Litres remaining: ";
-                    litresLabel.style.cssText = labelStyle;
-                    var litresInfo = document.createElement("span");
-                    litresInfo.innerHTML = tank.litresRemaining;
-                    litresInfo.style.cssText = defaultInfoStyle;
-                    litresDiv.appendChild(litresLabel);
-                    litresDiv.appendChild(litresInfo);
-                    tankWrapper.appendChild(litresDiv);
+                // Quantity remaining (formerly "Litres remaining:")
+                if (tank.displayQuantityRemaining) {
+                    var qtyDiv = document.createElement("div");
+                    var qtyLabel = document.createElement("span");
+                    qtyLabel.innerHTML = "Quantity remaining: ";
+                    qtyLabel.style.cssText = labelStyle;
+                    var qtyInfo = document.createElement("span");
+                    qtyInfo.innerHTML = tank.litresRemaining;
+                    qtyInfo.style.cssText = defaultInfoStyle;
+                    qtyDiv.appendChild(qtyLabel);
+                    qtyDiv.appendChild(qtyInfo);
+                    tankWrapper.appendChild(qtyDiv);
                 }
                 
-                // Last Reading
+                // Average use per day (Consumption Rate)
+                if (tank.displayConsumption) {
+                    var consDiv = document.createElement("div");
+                    var consLabel = document.createElement("span");
+                    consLabel.innerHTML = "Average use per day: ";
+                    consLabel.style.cssText = labelStyle;
+                    var consInfo = document.createElement("span");
+                    consInfo.innerHTML = tank.consumptionRate;
+                    consInfo.style.cssText = defaultInfoStyle;
+                    consDiv.appendChild(consLabel);
+                    consDiv.appendChild(consInfo);
+                    tankWrapper.appendChild(consDiv);
+                }
+                
+                // Last Reading (red if > 48 hours old)
                 if (tank.displayLastReading) {
                     var lastDiv = document.createElement("div");
                     var lastLabel = document.createElement("span");
@@ -129,7 +145,7 @@ Module.register("MMM-WatchManSensit", {
                     if (tank.lastReadingDate && tank.lastReadingDate !== "N/A") {
                         var readingDateObj = new Date(tank.lastReadingDate);
                         var now = new Date();
-                        if ((now - readingDateObj) > 48 * 3600 * 1000) {
+                        if ((now - readingDateObj) > 48 * 3600 * 1000) { // More than 48 hours old
                             lastReadingStyle = errorStyle;
                         }
                     }
@@ -139,7 +155,7 @@ Module.register("MMM-WatchManSensit", {
                     tankWrapper.appendChild(lastDiv);
                 }
                 
-                // Expected empty
+                // Expected empty (red if within 4 weeks)
                 if (tank.displayExpectedEmpty) {
                     var expectedDiv = document.createElement("div");
                     var expectedLabel = document.createElement("span");
@@ -151,7 +167,7 @@ Module.register("MMM-WatchManSensit", {
                     if (tank.rawRunOutDate && tank.rawRunOutDate !== "N/A") {
                         var runOutDateObj = new Date(tank.rawRunOutDate);
                         var now = new Date();
-                        if ((runOutDateObj - now) <= 28 * 24 * 3600 * 1000) {
+                        if ((runOutDateObj - now) <= 28 * 24 * 3600 * 1000) { // Within 4 weeks
                             expectedStyle = errorStyle;
                         }
                     }
