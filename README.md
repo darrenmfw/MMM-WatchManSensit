@@ -88,7 +88,6 @@ Additionally, each tank configuration supports optional boolean flags to control
        // IMPORTANT: The first tank's serial number MUST be the one from the first tank set up in the app.
        // That serial is used to build the user ID ("BOX" + Tank1.serialNumber) for all SOAP requests.
        tanks: [
-         {
            serialNumber: "12345678",   // Tank 1 serial (used for both user ID and signalman for Tank 1)
            tankName: "Main Tank",
            displayFillLevel: true,
