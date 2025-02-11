@@ -3,13 +3,14 @@
 **Release Date:** February 2025
 
 ## Overview
-MMM-WatchManSensit v1.1.1 builds on the multi‑tank support introduced in v1.1.0 by adding a new data line for displaying the tank’s remaining litres and introducing per-data-line visibility functionality. In this release, each tank is defined by a single serial number and a tank name. The module uses the serial number from the first tank (Tank 1) to construct the user ID (by prepending "BOX") for all SOAP requests, while each tank’s own serial number is used as its signalman number. **IMPORTANT:** The first tank's serial number MUST be the one from the first tank set up in the app.
+MMM-WatchManSensit v1.1.1 builds on previous releases by introducing enhanced multi‑tank support and new data lines. In this version, you can configure up to three tanks—each defined by a single serial number and a tank name. The module uses the serial number from the first tank (Tank 1) to construct the user ID (by prepending "BOX") for all SOAP requests, while each tank’s own serial number is used as its signalman number. **IMPORTANT:** The first tank's serial number MUST be the one from the first tank set up in the Watchman Connect app.
 
-The module communicates with the Kingspan Watchman SENSiT service via SOAP requests to retrieve live data. For each tank, it retrieves and displays:
+For each tank, the module retrieves and displays:
 - **Fill level:** e.g. "85%"
-- **Litres remaining:** e.g. "2087 L"
+- **Quantity remaining:** e.g. "2087 L"
+- **Average use per day:** The consumption rate (appended with " L")
 - **Last reading:** The timestamp when the tank was last read (formatted without seconds, with a 2‑digit year)
-- **Expected empty:** The run‑out date (formatted as date-only with a 2‑digit year)
+- **Expected empty:** The expected run‑out date (formatted as date-only with a 2‑digit year)
 
 Conditional formatting is applied:
 - Labels are grey.
@@ -17,22 +18,26 @@ Conditional formatting is applied:
   - The "Last reading" is over 48 hours old (displayed in red).
   - The "Expected empty" date is within 4 weeks (displayed in red).
 
+Additionally, each tank configuration supports optional boolean flags to control the visibility of individual data lines.
+
 ## New Features
 - **Multi-Tank Support:**  
   - Configure up to three tanks using a single serial number and tank name for each.
   - The module uses the first tank’s serial number (Tank 1) to build the user ID ("BOX" + Tank1.serialNumber) for all SOAP requests.
   - Each tank’s own serial number is used as its signalman number.
-- **Additional Data Line (Litres Remaining):**  
-  - The SOAP response now includes `<LevelLitres>`, which is displayed as "Litres remaining:".
+- **Additional Data Lines:**  
+  - The SOAP response now includes `<LevelLitres>`, which is displayed as "Quantity remaining:".
+  - A new data line displays `<ConsumptionRate>` as "Average use per day:" (with the value appended with " L").
 - **Data Line Visibility Functionality:**  
-  - Each tank configuration can now include optional boolean flags:
-    - `displayFillLevel` – shows or hides the "Fill level:" line.
-    - `displayLitresRemaining` – shows or hides the "Litres remaining:" line.
-    - `displayLastReading` – shows or hides the "Last reading:" line.
-    - `displayExpectedEmpty` – shows or hides the "Expected empty:" line.
-  - If these flags are omitted, they default to true.
+  - Each tank configuration can include optional boolean flags:
+    - `displayFillLevel` – shows/hides the "Fill level:" line.
+    - `displayQuantityRemaining` – shows/hides the "Quantity remaining:" line.
+    - `displayConsumption` – shows/hides the "Average use per day:" line.
+    - `displayLastReading` – shows/hides the "Last reading:" line.
+    - `displayExpectedEmpty` – shows/hides the "Expected empty:" line.
+  - These flags default to true if not set.
 - **SOAP-Based Data Retrieval:**  
-  - Retrieves fill level, litres remaining, last reading timestamp, and expected empty (run‑out) date for each tank.
+  - Retrieves fill level, quantity remaining, consumption rate, last reading timestamp, and expected empty (run‑out) date for each tank.
 - **Conditional UI Display:**  
   - Displays an error if a tank returns invalid data.
   - Tanks with a blank serial number are omitted.
@@ -41,10 +46,10 @@ Conditional formatting is applied:
 
 ## Requirements
 - [MagicMirror²](https://magicmirror.builders/)
-- Node.js (included with the MagicMirror installation)
+- Node.js (included with MagicMirror)
 - Internet connectivity to access the Connect Sensor SOAP service
 - **Important:** All tanks to be displayed on the module must be set up and working in the Watchman Connect app first.  
-  Download the Watchman Connect app from the [Apple App Store](https://apps.apple.com/gb/app/watchman-connect/id1587348277) or [Google Play Store](https://play.google.com/store/apps/details?id=com.kingspankwe.watchmanconnect&hl=en_GB).
+  Download the Watchman Connect app from the [Apple App Store](https://apps.apple.com/gb/app/watchman-connect/id1587348277) or the [Google Play Store](https://play.google.com/store/apps/details?id=com.kingspankwe.watchmanconnect&hl=en_GB).
 
 ## Installation
 
@@ -86,7 +91,8 @@ Conditional formatting is applied:
            serialNumber: "12345678",   // Tank 1 serial (used for both user ID and signalman for Tank 1)
            tankName: "Main Tank",
            displayFillLevel: true,
-           displayLitresRemaining: true,
+           displayQuantityRemaining: true,
+           displayConsumption: true,
            displayLastReading: true,
            displayExpectedEmpty: true
          },
@@ -94,7 +100,8 @@ Conditional formatting is applied:
            serialNumber: "87654321",   // Tank 2 serial (user ID from Tank 1 is used for this tank)
            tankName: "Secondary Tank",
            displayFillLevel: true,
-           displayLitresRemaining: true,
+           displayQuantityRemaining: true,
+           displayConsumption: true,
            displayLastReading: true,
            displayExpectedEmpty: true
          },
@@ -102,7 +109,8 @@ Conditional formatting is applied:
            serialNumber: "",           // Blank serial; this tank will be omitted.
            tankName: "Tertiary Tank",
            displayFillLevel: true,
-           displayLitresRemaining: true,
+           displayQuantityRemaining: true,
+           displayConsumption: true,
            displayLastReading: true,
            displayExpectedEmpty: true
          }
@@ -135,18 +143,21 @@ Conditional formatting is applied:
    ```
    with the SOAPAction `"http://mobileapp/SoapMobileAPPGetLatestLevel_v3"`. The SOAP response is parsed to extract:
    - **LevelPercentage:** The fill level.
-   - **LevelLitres:** The fill level in litres.
+   - **LevelLitres:** The quantity remaining (displayed as "Quantity remaining:").
+   - **ConsumptionRate:** The average use per day (displayed as "Average use per day:" with a " L" suffix).
    - **ReadingDate:** The last reading timestamp (formatted without seconds and with a 2-digit year).
    - **RunOutDate:** The expected empty date (formatted as date-only with a 2-digit year).
    
 3. **Display:**  
-   The front-end module displays a block for each tank with valid data:
-   - The tank name appears at the top.
-   - "Fill level:" shows the fill level (e.g., "85%").
-   - "Litres remaining:" displays the level in litres (e.g., "2087 L").
-   - "Last reading:" displays the formatted last reading timestamp in white (or red if over 48 hours old).
-   - "Expected empty:" displays the formatted run-out date in white (or red if within 4 weeks).
-   - Tanks that return invalid data or have a blank serial number are omitted (or display an error message).
+   The front-end module displays a block for each tank with valid data in the following order:
+   - **Tank Name**
+   - **Fill level:** e.g., "Fill level: 85%"
+   - **Quantity remaining:** e.g., "Quantity remaining: 2087 L"
+   - **Average use per day:** e.g., "Average use per day: 20.50 L"
+   - **Last reading:** e.g., "Last reading: 09/02/25, 02:44" (displayed in red if over 48 hours old)
+   - **Expected empty:** e.g., "Expected empty: 25/04/25" (displayed in red if within 4 weeks)
+   
+   Each data line can be individually hidden via configuration flags. Tanks with invalid data or a blank serial number are omitted or display an error message.
 
 ## Repository
 
