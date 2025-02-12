@@ -55,7 +55,7 @@ Module.register("MMM-WatchManSensit", {
         }
     },
 
-    // Helper function to create a row with flex styling.
+    // Helper function to create a row with flex styling (label left, data right)
     createRow: function(labelText, dataText, labelStyle, dataStyle) {
         var row = document.createElement("div");
         row.style.display = "flex";
@@ -98,7 +98,7 @@ Module.register("MMM-WatchManSensit", {
             tankWrapper.style.paddingBottom = "5px";
             tankWrapper.style.borderBottom = "1px solid grey";
             
-            // Tank Name (always displayed)
+            // Tank Name
             tankWrapper.appendChild(
                 this.createRow("Tank:", tank.tankName, labelStyle, defaultInfoStyle)
             );
@@ -116,7 +116,7 @@ Module.register("MMM-WatchManSensit", {
                     );
                 }
                 
-                // Quantity remaining (formerly "Litres remaining:")
+                // Quantity remaining
                 if (tank.displayQuantityRemaining) {
                     tankWrapper.appendChild(
                         this.createRow("Quantity remaining:", tank.litresRemaining, labelStyle, defaultInfoStyle)
@@ -130,12 +130,12 @@ Module.register("MMM-WatchManSensit", {
                     );
                 }
                 
-                // Last Reading: Format the date so that it shows time then date.
+                // Last Reading: show time then date, using "en-GB" for DD/MM/YY format.
                 if (tank.displayLastReading) {
                     var formattedLastReading = "N/A";
                     if (tank.lastReadingDate && tank.lastReadingDate !== "N/A") {
                         var d = new Date(tank.lastReadingDate);
-                        // Separate time and date:
+                        // Use en-GB for time and date formatting.
                         var formattedTime = d.toLocaleTimeString("en-GB", { hour: '2-digit', minute: '2-digit' });
                         var formattedDate = d.toLocaleDateString("en-GB", { year: '2-digit', month: '2-digit', day: '2-digit' });
                         formattedLastReading = formattedTime + ", " + formattedDate;
@@ -156,14 +156,4 @@ Module.register("MMM-WatchManSensit", {
                 // Expected empty
                 if (tank.displayExpectedEmpty) {
                     tankWrapper.appendChild(
-                        this.createRow("Expected empty:", tank.runOutDate, labelStyle, defaultInfoStyle)
-                    );
-                }
-            }
-            
-            wrapper.appendChild(tankWrapper);
-        }, this); // Ensure proper scope for 'this'
-        
-        return wrapper;
-    }
-});
+                        this.createRow("Expected empty:", t
