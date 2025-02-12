@@ -79,9 +79,9 @@ Module.register("MMM-WatchManSensit", {
         var wrapper = document.createElement("div");
         
         // Set the custom width if provided.
-        if (this.config.width) {
-            wrapper.style.width = this.config.width;
-        }
+//        if (this.config.width) {
+//            wrapper.style.width = this.config.width;
+//        }
         
         if (!this.dataReceived || this.dataReceived.length === 0) {
             wrapper.innerHTML = "No tank data available.";
