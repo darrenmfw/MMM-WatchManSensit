@@ -4,32 +4,37 @@ var xml2js = require("xml2js");
 
 module.exports = NodeHelper.create({
     // Manual function to format a date string.
-    // Expects ISO format "YYYY-MM-DDTHH:MM:SS(.fraction)?".
+    // Expects an ISO string like "YYYY-MM-DDTHH:MM:SS(.fraction)?".
     // If includeTime is true, returns "HH:MM, DD/MM/YY".
     // Otherwise, returns "DD/MM/YY".
     formatDate: function(dateString, includeTime) {
         if (!dateString) return "N/A";
         dateString = dateString.trim();
-        // If the date is the default invalid date, return "N/A"
+        // Log the raw date string
+        console.log("DEBUG formatDate raw:", dateString);
         if (dateString === "0001-01-01T00:00:00") return "N/A";
         var parts = dateString.split("T");
-        if(parts.length < 2) return "N/A";
-        var datePart = parts[0]; // "YYYY-MM-DD"
-        // Remove fractional seconds from time part (if present)
-        var timePart = parts[1].split(".")[0]; // "HH:MM:SS"
+        if (parts.length < 2) return "N/A";
+        var datePart = parts[0]; // e.g. "2025-02-14"
+        // Remove fractional seconds from the time part (if present)
+        var timePart = parts[1].split(".")[0]; // e.g. "03:56:40"
         var dateComponents = datePart.split("-");
-        if(dateComponents.length !== 3) return "N/A";
+        if (dateComponents.length !== 3) return "N/A";
         var year = dateComponents[0].slice(-2);
         var month = dateComponents[1];
         var day = dateComponents[2];
-        if(includeTime) {
+        if (includeTime) {
             var timeComponents = timePart.split(":");
-            if(timeComponents.length < 2) return "N/A";
+            if (timeComponents.length < 2) return "N/A";
             var hours = timeComponents[0];
             var minutes = timeComponents[1];
-            return hours + ":" + minutes + ", " + day + "/" + month + "/" + year;
+            var result = hours + ":" + minutes + ", " + day + "/" + month + "/" + year;
+            console.log("DEBUG formatDate result (includeTime):", result);
+            return result;
         } else {
-            return day + "/" + month + "/" + year;
+            var result = day + "/" + month + "/" + year;
+            console.log("DEBUG formatDate result (date only):", result);
+            return result;
         }
     },
 
@@ -57,11 +62,9 @@ module.exports = NodeHelper.create({
         validTanks.slice(0, 3).forEach(function(tankConfig, index) {
             var userId, signalmanNo;
             if (index === 0) {
-                // For tank 1, use its own serial for both.
                 userId = "BOX" + tankConfig.serialNumber;
                 signalmanNo = tankConfig.serialNumber;
             } else {
-                // For tanks 2 and 3, use primaryUserSerial for user ID and their own serial for signalman.
                 userId = "BOX" + primaryUserSerial;
                 signalmanNo = tankConfig.serialNumber;
             }
@@ -120,8 +123,6 @@ module.exports = NodeHelper.create({
                                 var levelElement = resultData.Level;
                                 if (levelElement && levelElement.LevelPercentage && parseFloat(levelElement.LevelPercentage.trim()) >= 0) {
                                     var fillLevel = levelElement.LevelPercentage;
-                                    
-                                    // Process ReadingDate and RunOutDate
                                     var rawReadingDate = levelElement.ReadingDate ? levelElement.ReadingDate.trim() : "";
                                     var rawRunOutDate = levelElement.RunOutDate ? levelElement.RunOutDate.trim() : "";
                                     
