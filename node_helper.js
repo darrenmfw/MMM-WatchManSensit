@@ -3,41 +3,7 @@ var https = require("https");
 var xml2js = require("xml2js");
 
 module.exports = NodeHelper.create({
-    // Manual function to format a date string.
-    // Expects an ISO string like "YYYY-MM-DDTHH:MM:SS(.fraction)?".
-    // If includeTime is true, returns "HH:MM, DD/MM/YY".
-    // Otherwise, returns "DD/MM/YY".
-    formatDate: function(dateString, includeTime) {
-        if (!dateString) return "N/A";
-        dateString = dateString.trim();
-        // Log the raw date string
-        console.log("DEBUG formatDate raw:", dateString);
-        if (dateString === "0001-01-01T00:00:00") return "N/A";
-        var parts = dateString.split("T");
-        if (parts.length < 2) return "N/A";
-        var datePart = parts[0]; // e.g. "2025-02-14"
-        // Remove fractional seconds from the time part (if present)
-        var timePart = parts[1].split(".")[0]; // e.g. "03:56:40"
-        var dateComponents = datePart.split("-");
-        if (dateComponents.length !== 3) return "N/A";
-        var year = dateComponents[0].slice(-2);
-        var month = dateComponents[1];
-        var day = dateComponents[2];
-        if (includeTime) {
-            var timeComponents = timePart.split(":");
-            if (timeComponents.length < 2) return "N/A";
-            var hours = timeComponents[0];
-            var minutes = timeComponents[1];
-            var result = hours + ":" + minutes + ", " + day + "/" + month + "/" + year;
-            console.log("DEBUG formatDate result (includeTime):", result);
-            return result;
-        } else {
-            var result = day + "/" + month + "/" + year;
-            console.log("DEBUG formatDate result (date only):", result);
-            return result;
-        }
-    },
-
+    // Function to update and fetch sensor data
     updateLatestLevel: function(config) {
         var self = this;
         var tanks = config.tanks;
