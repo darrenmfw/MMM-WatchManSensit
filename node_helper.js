@@ -3,6 +3,22 @@ var https = require("https");
 var xml2js = require("xml2js");
 
 module.exports = NodeHelper.create({
+    // Helper function to format a date string.
+    // If includeTime is true, it returns "HH:MM, DD/MM/YY".
+    // Otherwise, it returns "DD/MM/YY".
+    formatDate: function(dateString, includeTime) {
+        if (!dateString) return "N/A";
+        var d = new Date(dateString.trim());
+        if (isNaN(d.getTime())) return "N/A";
+        if (includeTime) {
+            var time = d.toLocaleTimeString("en-GB", { hour: '2-digit', minute: '2-digit' });
+            var date = d.toLocaleDateString("en-GB", { year: '2-digit', month: '2-digit', day: '2-digit' });
+            return time + ", " + date;
+        } else {
+            return d.toLocaleDateString("en-GB", { year: '2-digit', month: '2-digit', day: '2-digit' });
+        }
+    },
+
     updateLatestLevel: function(config) {
         var self = this;
         var tanks = config.tanks;
@@ -92,34 +108,13 @@ module.exports = NodeHelper.create({
                                 if (levelElement && levelElement.LevelPercentage && parseFloat(levelElement.LevelPercentage.trim()) >= 0) {
                                     var fillLevel = levelElement.LevelPercentage;
                                     
-                                    // Trim the ReadingDate to remove any extraneous whitespace.
-                                    var rawReadingDate = levelElement.ReadingDate;
-                                    if (rawReadingDate) {
-                                        rawReadingDate = rawReadingDate.trim();
-                                    }
-                                    var d = new Date(rawReadingDate);
-                                    // Use toLocaleString for formatting; if invalid, d.getTime() will be NaN.
-                                    var formattedReadingDate = isNaN(d.getTime()) ? "N/A" : d.toLocaleString("en-GB", {
-                                        year: '2-digit',
-                                        month: '2-digit',
-                                        day: '2-digit',
-                                        hour: '2-digit',
-                                        minute: '2-digit'
-                                    });
-                                    
+                                    var readingDate = levelElement.ReadingDate;
                                     var runOutDate = levelElement.RunOutDate;
-                                    var formattedRunOutDate = "";
-                                    if (runOutDate && runOutDate !== "0001-01-01T00:00:00") {
-                                        var dRun = new Date(runOutDate.trim());
-                                        formattedRunOutDate = isNaN(dRun.getTime()) ? "N/A" : dRun.toLocaleDateString("en-GB", {
-                                            year: '2-digit',
-                                            month: '2-digit',
-                                            day: '2-digit'
-                                        });
-                                    }
-                                    
                                     var litres = levelElement.LevelLitres || "N/A";
                                     var consumption = levelElement.ConsumptionRate || "N/A";
+                                    
+                                    var formattedReadingDate = self.formatDate(readingDate, true); // include time for last reading
+                                    var formattedRunOutDate = self.formatDate(runOutDate, false); // only date for expected empty
                                     
                                     results[index] = {
                                         tankName: tankConfig.tankName,
