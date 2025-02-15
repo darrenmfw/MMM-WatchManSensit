@@ -3,28 +3,33 @@ var https = require("https");
 var xml2js = require("xml2js");
 
 module.exports = NodeHelper.create({
-    // Simplified function to format a date.
-    // It logs the raw date and then returns a locale string or "N/A".
+    // Manual function to format a date string.
+    // Expects ISO format "YYYY-MM-DDTHH:MM:SS(.fraction)?".
+    // If includeTime is true, returns "HH:MM, DD/MM/YY".
+    // Otherwise, returns "DD/MM/YY".
     formatDate: function(dateString, includeTime) {
         if (!dateString) return "N/A";
         dateString = dateString.trim();
-        console.log("DEBUG ReadingDate:", dateString);
-        var d = new Date(dateString);
-        if (isNaN(d.getTime())) return "N/A";
-        if (includeTime) {
-            return d.toLocaleString("en-GB", { 
-                year: '2-digit', 
-                month: '2-digit', 
-                day: '2-digit', 
-                hour: '2-digit', 
-                minute: '2-digit'
-            });
+        // If the date is the default invalid date, return "N/A"
+        if (dateString === "0001-01-01T00:00:00") return "N/A";
+        var parts = dateString.split("T");
+        if(parts.length < 2) return "N/A";
+        var datePart = parts[0]; // "YYYY-MM-DD"
+        // Remove fractional seconds from time part (if present)
+        var timePart = parts[1].split(".")[0]; // "HH:MM:SS"
+        var dateComponents = datePart.split("-");
+        if(dateComponents.length !== 3) return "N/A";
+        var year = dateComponents[0].slice(-2);
+        var month = dateComponents[1];
+        var day = dateComponents[2];
+        if(includeTime) {
+            var timeComponents = timePart.split(":");
+            if(timeComponents.length < 2) return "N/A";
+            var hours = timeComponents[0];
+            var minutes = timeComponents[1];
+            return hours + ":" + minutes + ", " + day + "/" + month + "/" + year;
         } else {
-            return d.toLocaleDateString("en-GB", { 
-                year: '2-digit', 
-                month: '2-digit', 
-                day: '2-digit'
-            });
+            return day + "/" + month + "/" + year;
         }
     },
 
@@ -52,9 +57,11 @@ module.exports = NodeHelper.create({
         validTanks.slice(0, 3).forEach(function(tankConfig, index) {
             var userId, signalmanNo;
             if (index === 0) {
+                // For tank 1, use its own serial for both.
                 userId = "BOX" + tankConfig.serialNumber;
                 signalmanNo = tankConfig.serialNumber;
             } else {
+                // For tanks 2 and 3, use primaryUserSerial for user ID and their own serial for signalman.
                 userId = "BOX" + primaryUserSerial;
                 signalmanNo = tankConfig.serialNumber;
             }
@@ -113,11 +120,17 @@ module.exports = NodeHelper.create({
                                 var levelElement = resultData.Level;
                                 if (levelElement && levelElement.LevelPercentage && parseFloat(levelElement.LevelPercentage.trim()) >= 0) {
                                     var fillLevel = levelElement.LevelPercentage;
+                                    
+                                    // Process ReadingDate and RunOutDate
                                     var rawReadingDate = levelElement.ReadingDate ? levelElement.ReadingDate.trim() : "";
                                     var rawRunOutDate = levelElement.RunOutDate ? levelElement.RunOutDate.trim() : "";
                                     
-                                    if(rawReadingDate === "0001-01-01T00:00:00") { rawReadingDate = ""; }
-                                    if(rawRunOutDate === "0001-01-01T00:00:00") { rawRunOutDate = ""; }
+                                    if(rawReadingDate === "0001-01-01T00:00:00") {
+                                        rawReadingDate = "";
+                                    }
+                                    if(rawRunOutDate === "0001-01-01T00:00:00") {
+                                        rawRunOutDate = "";
+                                    }
                                     
                                     var formattedReadingDate = self.formatDate(rawReadingDate, true);
                                     var formattedRunOutDate = self.formatDate(rawRunOutDate, false);
