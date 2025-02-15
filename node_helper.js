@@ -92,11 +92,10 @@ module.exports = NodeHelper.create({
                                 if (levelElement && levelElement.LevelPercentage && parseFloat(levelElement.LevelPercentage.trim()) >= 0) {
                                     var fillLevel = levelElement.LevelPercentage;
                                     
-                                    // Process ReadingDate and RunOutDate
+                                    // Process ReadingDate and RunOutDate.
                                     var rawReadingDate = levelElement.ReadingDate ? levelElement.ReadingDate.trim() : "";
                                     var rawRunOutDate = levelElement.RunOutDate ? levelElement.RunOutDate.trim() : "";
                                     
-                                    // If the date equals the default invalid value, treat it as missing.
                                     if(rawReadingDate === "0001-01-01T00:00:00") {
                                         rawReadingDate = "";
                                     }
@@ -104,28 +103,33 @@ module.exports = NodeHelper.create({
                                         rawRunOutDate = "";
                                     }
                                     
+                                    // Parse ReadingDate. If initial parsing fails, try appending "Z".
                                     var d = new Date(rawReadingDate);
-                                    var formattedReadingDate = (rawReadingDate && !isNaN(d.getTime()))
-                                        ? d.toLocaleString("en-GB", {
+                                    if (isNaN(d.getTime()) && rawReadingDate !== "") {
+                                        d = new Date(rawReadingDate + "Z");
+                                    }
+                                    var formattedReadingDate = (!rawReadingDate || isNaN(d.getTime()))
+                                        ? "N/A"
+                                        : d.toLocaleString("en-GB", {
                                             year: '2-digit',
                                             month: '2-digit',
                                             day: '2-digit',
                                             hour: '2-digit',
                                             minute: '2-digit'
-                                        })
-                                        : "N/A";
+                                        });
                                     
-                                    var formattedRunOutDate = "N/A";
-                                    if (rawRunOutDate) {
-                                        var dRun = new Date(rawRunOutDate);
-                                        formattedRunOutDate = isNaN(dRun.getTime())
-                                            ? "N/A"
-                                            : dRun.toLocaleDateString("en-GB", {
-                                                year: '2-digit',
-                                                month: '2-digit',
-                                                day: '2-digit'
-                                            });
+                                    // Parse RunOutDate similarly.
+                                    var dRun = new Date(rawRunOutDate);
+                                    if (isNaN(dRun.getTime()) && rawRunOutDate !== "") {
+                                        dRun = new Date(rawRunOutDate + "Z");
                                     }
+                                    var formattedRunOutDate = (!rawRunOutDate || isNaN(dRun.getTime()))
+                                        ? "N/A"
+                                        : dRun.toLocaleDateString("en-GB", {
+                                            year: '2-digit',
+                                            month: '2-digit',
+                                            day: '2-digit'
+                                        });
                                     
                                     var litres = levelElement.LevelLitres || "N/A";
                                     var consumption = levelElement.ConsumptionRate || "N/A";
