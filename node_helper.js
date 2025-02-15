@@ -3,7 +3,6 @@ var https = require("https");
 var xml2js = require("xml2js");
 
 module.exports = NodeHelper.create({
-    // Function to update and fetch sensor data
     updateLatestLevel: function(config) {
         var self = this;
         var tanks = config.tanks;
@@ -28,9 +27,11 @@ module.exports = NodeHelper.create({
         validTanks.slice(0, 3).forEach(function(tankConfig, index) {
             var userId, signalmanNo;
             if (index === 0) {
+                // For tank 1, use its own serial for both.
                 userId = "BOX" + tankConfig.serialNumber;
                 signalmanNo = tankConfig.serialNumber;
             } else {
+                // For tanks 2 and 3, use primaryUserSerial for user ID and their own serial for signalman.
                 userId = "BOX" + primaryUserSerial;
                 signalmanNo = tankConfig.serialNumber;
             }
@@ -87,23 +88,32 @@ module.exports = NodeHelper.create({
                                 if (!resultData) { throw new Error("Missing SoapMobileAPPGetLatestLevel_v3Result"); }
                                 
                                 var levelElement = resultData.Level;
+                                // Accept valid data if LevelPercentage exists and is >= 0.
                                 if (levelElement && levelElement.LevelPercentage && parseFloat(levelElement.LevelPercentage.trim()) >= 0) {
                                     var fillLevel = levelElement.LevelPercentage;
-                                    var rawReadingDate = levelElement.ReadingDate ? levelElement.ReadingDate.trim() : "";
-                                    var rawRunOutDate = levelElement.RunOutDate ? levelElement.RunOutDate.trim() : "";
-                                    
-                                    if(rawReadingDate === "0001-01-01T00:00:00") {
-                                        rawReadingDate = "";
-                                    }
-                                    if(rawRunOutDate === "0001-01-01T00:00:00") {
-                                        rawRunOutDate = "";
-                                    }
-                                    
-                                    var formattedReadingDate = self.formatDate(rawReadingDate, true);
-                                    var formattedRunOutDate = self.formatDate(rawRunOutDate, false);
-                                    
+                                    var readingDate = levelElement.ReadingDate;
+                                    var runOutDate = levelElement.RunOutDate;
                                     var litres = levelElement.LevelLitres || "N/A";
                                     var consumption = levelElement.ConsumptionRate || "N/A";
+                                    
+                                    var d = new Date(readingDate);
+                                    var formattedReadingDate = d.toLocaleString("en-GB", {
+                                        year: '2-digit',
+                                        month: '2-digit',
+                                        day: '2-digit',
+                                        hour: '2-digit',
+                                        minute: '2-digit'
+                                    });
+                                    
+                                    var formattedRunOutDate = "";
+                                    if (runOutDate && runOutDate !== "0001-01-01T00:00:00") {
+                                        var dRun = new Date(runOutDate);
+                                        formattedRunOutDate = dRun.toLocaleDateString("en-GB", {
+                                            year: '2-digit',
+                                            month: '2-digit',
+                                            day: '2-digit'
+                                        });
+                                    }
                                     
                                     results[index] = {
                                         tankName: tankConfig.tankName,
@@ -111,7 +121,7 @@ module.exports = NodeHelper.create({
                                         litresRemaining: litres + (litres !== "N/A" ? " L" : ""),
                                         lastReadingDate: formattedReadingDate,
                                         runOutDate: formattedRunOutDate,
-                                        rawRunOutDate: rawRunOutDate,
+                                        rawRunOutDate: runOutDate,
                                         consumptionRate: consumption + (consumption !== "N/A" ? " L" : ""),
                                         displayFillLevel: (tankConfig.displayFillLevel !== false),
                                         displayQuantityRemaining: (tankConfig.displayQuantityRemaining !== false),
