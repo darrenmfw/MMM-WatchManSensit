@@ -3,22 +3,6 @@ var https = require("https");
 var xml2js = require("xml2js");
 
 module.exports = NodeHelper.create({
-    // Helper function to format a date string.
-    // If includeTime is true, it returns "HH:MM, DD/MM/YY".
-    // Otherwise, it returns "DD/MM/YY".
-    formatDate: function(dateString, includeTime) {
-        if (!dateString) return "N/A";
-        var d = new Date(dateString.trim());
-        if (isNaN(d.getTime())) return "N/A";
-        if (includeTime) {
-            var time = d.toLocaleTimeString("en-GB", { hour: '2-digit', minute: '2-digit' });
-            var date = d.toLocaleDateString("en-GB", { year: '2-digit', month: '2-digit', day: '2-digit' });
-            return time + ", " + date;
-        } else {
-            return d.toLocaleDateString("en-GB", { year: '2-digit', month: '2-digit', day: '2-digit' });
-        }
-    },
-
     updateLatestLevel: function(config) {
         var self = this;
         var tanks = config.tanks;
@@ -108,13 +92,43 @@ module.exports = NodeHelper.create({
                                 if (levelElement && levelElement.LevelPercentage && parseFloat(levelElement.LevelPercentage.trim()) >= 0) {
                                     var fillLevel = levelElement.LevelPercentage;
                                     
-                                    var readingDate = levelElement.ReadingDate;
-                                    var runOutDate = levelElement.RunOutDate;
+                                    // Process ReadingDate and RunOutDate
+                                    var rawReadingDate = levelElement.ReadingDate ? levelElement.ReadingDate.trim() : "";
+                                    var rawRunOutDate = levelElement.RunOutDate ? levelElement.RunOutDate.trim() : "";
+                                    
+                                    // If the date equals the default invalid value, treat it as missing.
+                                    if(rawReadingDate === "0001-01-01T00:00:00") {
+                                        rawReadingDate = "";
+                                    }
+                                    if(rawRunOutDate === "0001-01-01T00:00:00") {
+                                        rawRunOutDate = "";
+                                    }
+                                    
+                                    var d = new Date(rawReadingDate);
+                                    var formattedReadingDate = (rawReadingDate && !isNaN(d.getTime()))
+                                        ? d.toLocaleString("en-GB", {
+                                            year: '2-digit',
+                                            month: '2-digit',
+                                            day: '2-digit',
+                                            hour: '2-digit',
+                                            minute: '2-digit'
+                                        })
+                                        : "N/A";
+                                    
+                                    var formattedRunOutDate = "N/A";
+                                    if (rawRunOutDate) {
+                                        var dRun = new Date(rawRunOutDate);
+                                        formattedRunOutDate = isNaN(dRun.getTime())
+                                            ? "N/A"
+                                            : dRun.toLocaleDateString("en-GB", {
+                                                year: '2-digit',
+                                                month: '2-digit',
+                                                day: '2-digit'
+                                            });
+                                    }
+                                    
                                     var litres = levelElement.LevelLitres || "N/A";
                                     var consumption = levelElement.ConsumptionRate || "N/A";
-                                    
-                                    var formattedReadingDate = self.formatDate(readingDate, true); // include time for last reading
-                                    var formattedRunOutDate = self.formatDate(runOutDate, false); // only date for expected empty
                                     
                                     results[index] = {
                                         tankName: tankConfig.tankName,
@@ -122,7 +136,7 @@ module.exports = NodeHelper.create({
                                         litresRemaining: litres + (litres !== "N/A" ? " L" : ""),
                                         lastReadingDate: formattedReadingDate,
                                         runOutDate: formattedRunOutDate,
-                                        rawRunOutDate: runOutDate,
+                                        rawRunOutDate: rawRunOutDate,
                                         consumptionRate: consumption + (consumption !== "N/A" ? " L" : ""),
                                         displayFillLevel: (tankConfig.displayFillLevel !== false),
                                         displayQuantityRemaining: (tankConfig.displayQuantityRemaining !== false),
