@@ -138,7 +138,8 @@ Module.register("MMM-WatchManSensit", {
                         // Separate time and date:
                         var formattedTime = d.toLocaleTimeString("en-GB", { hour: '2-digit', minute: '2-digit' });
                         var formattedDate = d.toLocaleDateString("en-GB", { year: '2-digit', month: '2-digit', day: '2-digit' });
-                        formattedLastReading = formattedTime + ", " + formattedDate;
+                        //formattedLastReading = formattedTime + ", " + formattedDate;
+                        formattedLasyReading = formattedDate;
                     }
                     var lastReadingDataStyle = defaultInfoStyle;
                     if (tank.lastReadingDate && tank.lastReadingDate !== "N/A") {
