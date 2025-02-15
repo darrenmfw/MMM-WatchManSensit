@@ -118,24 +118,16 @@ Module.register("MMM-WatchManSensit", {
                     tankWrapper.appendChild(this.createRow("Average use per day:", tank.consumptionRate, labelStyle, defaultInfoStyle));
                 }
                 
-                // Last Reading: Simply use toLocaleString (will use the default format for "en-GB")
+                // Last Reading: simply use toLocaleString("en-GB") without custom formatting.
                 if (tank.displayLastReading) {
                     var formattedLastReading = "N/A";
-                    if (tank.lastReadingDate && tank.lastReadingDate !== "N/A") {
+                    if (tank.lastReadingDate) {
                         var d = new Date(tank.lastReadingDate);
                         if (!isNaN(d.getTime())) {
                             formattedLastReading = d.toLocaleString("en-GB");
                         }
                     }
-                    var lastReadingDataStyle = defaultInfoStyle;
-                    if (tank.lastReadingDate && tank.lastReadingDate !== "N/A") {
-                        var readingDateObj = new Date(tank.lastReadingDate);
-                        var now = new Date();
-                        if ((now - readingDateObj) > 48 * 3600 * 1000) { // More than 48 hours old
-                            lastReadingDataStyle = errorStyle;
-                        }
-                    }
-                    tankWrapper.appendChild(this.createRow("Last reading:", formattedLastReading, labelStyle, lastReadingDataStyle));
+                    tankWrapper.appendChild(this.createRow("Last reading:", formattedLastReading, labelStyle, defaultInfoStyle));
                 }
                 
                 // Expected empty
