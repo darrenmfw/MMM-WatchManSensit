@@ -40,8 +40,9 @@ Module.register("MMM-WatchManSensit", {
         Log.info("Starting MMM-WatchManSensit module...");
         this.dataReceived = [];
         this.sendSocketNotification("WATCHMAN_DATA_REQUEST", this.config);
-        setInterval(() => {
-            this.sendSocketNotification("WATCHMAN_DATA_REQUEST", this.config);
+        var self = this;
+        setInterval(function() {
+            self.sendSocketNotification("WATCHMAN_DATA_REQUEST", self.config);
         }, this.config.updateInterval);
     },
 
@@ -54,7 +55,7 @@ Module.register("MMM-WatchManSensit", {
         }
     },
 
-    // Helper function to create a row with flex styling (label left, data right)
+    // Helper function to create a row with flex styling.
     createRow: function(labelText, dataText, labelStyle, dataStyle) {
         var row = document.createElement("div");
         row.style.display = "flex";
@@ -74,37 +75,10 @@ Module.register("MMM-WatchManSensit", {
         return row;
     },
 
-    // FormatDate function uses toLocaleString("en-GB") with fallback
-    formatDate: function(dateString, includeTime) {
-        if (!dateString) return "N/A";
-        dateString = dateString.trim();
-        var d = new Date(dateString);
-        if (isNaN(d.getTime())) {
-            if (!dateString.endsWith("Z")) {
-                d = new Date(dateString + "Z");
-            }
-        }
-        if (isNaN(d.getTime())) return "N/A";
-        if (includeTime) {
-            return d.toLocaleString("en-GB", {
-                year: '2-digit',
-                month: '2-digit',
-                day: '2-digit',
-                hour: '2-digit',
-                minute: '2-digit'
-            });
-        } else {
-            return d.toLocaleDateString("en-GB", {
-                year: '2-digit',
-                month: '2-digit',
-                day: '2-digit'
-            });
-        }
-    },
-
     getDom: function() {
         var wrapper = document.createElement("div");
-        // Set custom width if provided.
+        
+        // Set the custom width if provided.
         if (this.config.width) {
             wrapper.style.width = this.config.width;
         }
@@ -118,52 +92,78 @@ Module.register("MMM-WatchManSensit", {
         var defaultInfoStyle = "color: white;";
         var errorStyle = "color: red;";
         
-        // Debug log each tank object received
-        this.dataReceived.forEach((tank) => {
-            console.log("Tank data received:", tank);
+        this.dataReceived.forEach(function(tank) {
             var tankWrapper = document.createElement("div");
             tankWrapper.style.marginBottom = "10px";
             tankWrapper.style.paddingBottom = "5px";
             tankWrapper.style.borderBottom = "1px solid grey";
             
-            // Tank Name row
-            tankWrapper.appendChild(this.createRow("Tank:", tank.tankName, labelStyle, defaultInfoStyle));
+            // Tank Name (always displayed)
+            tankWrapper.appendChild(
+                this.createRow("Tank:", tank.tankName, labelStyle, defaultInfoStyle)
+            );
             
             // If there's an error, display it and skip the rest.
             if (tank.error) {
-                tankWrapper.appendChild(this.createRow("Error:", tank.error, labelStyle, errorStyle));
+                tankWrapper.appendChild(
+                    this.createRow("Error:", tank.error, labelStyle, errorStyle)
+                );
             } else {
                 // Fill Level
                 if (tank.displayFillLevel) {
-                    tankWrapper.appendChild(this.createRow("Fill level:", tank.fillLevel, labelStyle, defaultInfoStyle));
+                    tankWrapper.appendChild(
+                        this.createRow("Fill level:", tank.fillLevel, labelStyle, defaultInfoStyle)
+                    );
                 }
                 
-                // Quantity remaining
+                // Quantity remaining (formerly "Litres remaining:")
                 if (tank.displayQuantityRemaining) {
-                    tankWrapper.appendChild(this.createRow("Quantity remaining:", tank.litresRemaining, labelStyle, defaultInfoStyle));
+                    tankWrapper.appendChild(
+                        this.createRow("Quantity remaining:", tank.litresRemaining, labelStyle, defaultInfoStyle)
+                    );
                 }
                 
                 // Average use per day (Consumption Rate)
                 if (tank.displayConsumption) {
-                    tankWrapper.appendChild(this.createRow("Average use per day:", tank.consumptionRate, labelStyle, defaultInfoStyle));
+                    tankWrapper.appendChild(
+                        this.createRow("Average use per day:", tank.consumptionRate, labelStyle, defaultInfoStyle)
+                    );
                 }
                 
-                // Last Reading
+                // Last Reading: Format the date so that it shows time then date.
                 if (tank.displayLastReading) {
-                    var formattedLastReading = this.formatDate(tank.lastReadingDate, true);
-                    tankWrapper.appendChild(this.createRow("Last reading:", formattedLastReading, labelStyle, defaultInfoStyle));
+                    var formattedLastReading = "N/A";
+                    if (tank.lastReadingDate && tank.lastReadingDate !== "N/A") {
+                        var d = new Date(tank.lastReadingDate);
+                        // Separate time and date:
+                        var formattedTime = d.toLocaleTimeString("en-GB", { hour: '2-digit', minute: '2-digit' });
+                        var formattedDate = d.toLocaleDateString("en-GB", { year: '2-digit', month: '2-digit', day: '2-digit' });
+                        formattedLastReading = formattedTime + ", " + formattedDate;
+                    }
+                    var lastReadingDataStyle = defaultInfoStyle;
+                    if (tank.lastReadingDate && tank.lastReadingDate !== "N/A") {
+                        var readingDateObj = new Date(tank.lastReadingDate);
+                        var now = new Date();
+                        if ((now - readingDateObj) > 48 * 3600 * 1000) { // More than 48 hours old
+                            lastReadingDataStyle = errorStyle;
+                        }
+                    }
+                    tankWrapper.appendChild(
+                        this.createRow("Last reading:", formattedLastReading, labelStyle, lastReadingDataStyle)
+                    );
                 }
                 
                 // Expected empty
                 if (tank.displayExpectedEmpty) {
-                    tankWrapper.appendChild(this.createRow("Expected empty:", this.formatDate(tank.runOutDate, false), labelStyle, defaultInfoStyle));
+                    tankWrapper.appendChild(
+                        this.createRow("Expected empty:", tank.runOutDate, labelStyle, defaultInfoStyle)
+                    );
                 }
             }
             
             wrapper.appendChild(tankWrapper);
-        });
+        }, this); // Ensure proper scope for 'this'
         
         return wrapper;
     }
 });
-#
