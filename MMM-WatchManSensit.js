@@ -159,6 +159,7 @@ Module.register("MMM-WatchManSensit", {
                 if (tank.displayExpectedEmpty) {
                     tankWrapper.appendChild(this.createRow("Expected empty:", this.formatDate(tank.runOutDate, false), labelStyle, defaultInfoStyle));
                 }
+                console.log("Tank data received:", tank);
             }
             
             wrapper.appendChild(tankWrapper);
