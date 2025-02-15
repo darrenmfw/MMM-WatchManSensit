@@ -91,13 +91,15 @@ module.exports = NodeHelper.create({
                                 // Accept valid data if LevelPercentage exists and is >= 0.
                                 if (levelElement && levelElement.LevelPercentage && parseFloat(levelElement.LevelPercentage.trim()) >= 0) {
                                     var fillLevel = levelElement.LevelPercentage;
-                                    var readingDate = levelElement.ReadingDate;
-                                    var runOutDate = levelElement.RunOutDate;
-                                    var litres = levelElement.LevelLitres || "N/A";
-                                    var consumption = levelElement.ConsumptionRate || "N/A";
                                     
-                                    var d = new Date(readingDate);
-                                    var formattedReadingDate = d.toLocaleString("en-GB", {
+                                    // Trim the ReadingDate to remove any extraneous whitespace.
+                                    var rawReadingDate = levelElement.ReadingDate;
+                                    if (rawReadingDate) {
+                                        rawReadingDate = rawReadingDate.trim();
+                                    }
+                                    var d = new Date(rawReadingDate);
+                                    // Use toLocaleString for formatting; if invalid, d.getTime() will be NaN.
+                                    var formattedReadingDate = isNaN(d.getTime()) ? "N/A" : d.toLocaleString("en-GB", {
                                         year: '2-digit',
                                         month: '2-digit',
                                         day: '2-digit',
@@ -105,15 +107,19 @@ module.exports = NodeHelper.create({
                                         minute: '2-digit'
                                     });
                                     
+                                    var runOutDate = levelElement.RunOutDate;
                                     var formattedRunOutDate = "";
                                     if (runOutDate && runOutDate !== "0001-01-01T00:00:00") {
-                                        var dRun = new Date(runOutDate);
-                                        formattedRunOutDate = dRun.toLocaleDateString("en-GB", {
+                                        var dRun = new Date(runOutDate.trim());
+                                        formattedRunOutDate = isNaN(dRun.getTime()) ? "N/A" : dRun.toLocaleDateString("en-GB", {
                                             year: '2-digit',
                                             month: '2-digit',
                                             day: '2-digit'
                                         });
                                     }
+                                    
+                                    var litres = levelElement.LevelLitres || "N/A";
+                                    var consumption = levelElement.ConsumptionRate || "N/A";
                                     
                                     results[index] = {
                                         tankName: tankConfig.tankName,
