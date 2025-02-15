@@ -96,14 +96,23 @@ module.exports = NodeHelper.create({
                                     var litres = levelElement.LevelLitres || "N/A";
                                     var consumption = levelElement.ConsumptionRate || "N/A";
                                     
-                                    var d = new Date(readingDate);
-                                    var formattedReadingDate = d.toLocaleString("en-GB", {
-                                        year: '2-digit',
-                                        month: '2-digit',
-                                        day: '2-digit',
-                                        hour: '2-digit',
-                                        minute: '2-digit'
-                                    });
+                                    //var d = new Date(readingDate);
+                                    //var formattedReadingDate = d.toLocaleString("en-GB", {
+                                    //    year: '2-digit',
+                                    //    month: '2-digit',
+                                    //    day: '2-digit',
+                                    //    hour: '2-digit',
+                                    //    minute: '2-digit'
+                                    //});
+
+                                    var formattedReadingDate = "";
+                                    if (readingDate && readingDate !== "0001-01-01T00:00:00") {
+                                        var d = new Date(readingDate);
+                                        formattedReadingDate = d.toLocaleDateString("en-GB", {
+                                            year: '2-digit',
+                                            month: '2-digit',
+                                            day: '2-digit'
+                                        });
                                     
                                     var formattedRunOutDate = "";
                                     if (runOutDate && runOutDate !== "0001-01-01T00:00:00") {
