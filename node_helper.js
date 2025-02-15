@@ -113,6 +113,7 @@ module.exports = NodeHelper.create({
                                             month: '2-digit',
                                             day: '2-digit'
                                         });
+                                    }
                                     
                                     var formattedRunOutDate = "";
                                     if (runOutDate && runOutDate !== "0001-01-01T00:00:00") {
