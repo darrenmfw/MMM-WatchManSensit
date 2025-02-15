@@ -60,6 +60,110 @@ Module.register("MMM-WatchManSensit", {
         row.style.display = "flex";
         row.style.justifyContent = "space-between";
         row.style.width = "100%";
-
+        
         var label = document.createElement("span");
-        label.innerHTML = l
+        label.innerHTML = labelText;
+        label.style.cssText = labelStyle;
+        
+        var data = document.createElement("span");
+        data.innerHTML = dataText;
+        data.style.cssText = dataStyle;
+        
+        row.appendChild(label);
+        row.appendChild(data);
+        return row;
+    },
+
+    // FormatDate function uses toLocaleString("en-GB") with fallback
+    formatDate: function(dateString, includeTime) {
+        if (!dateString) return "N/A";
+        dateString = dateString.trim();
+        var d = new Date(dateString);
+        if (isNaN(d.getTime())) {
+            if (!dateString.endsWith("Z")) {
+                d = new Date(dateString + "Z");
+            }
+        }
+        if (isNaN(d.getTime())) return "N/A";
+        if (includeTime) {
+            return d.toLocaleString("en-GB", {
+                year: '2-digit',
+                month: '2-digit',
+                day: '2-digit',
+                hour: '2-digit',
+                minute: '2-digit'
+            });
+        } else {
+            return d.toLocaleDateString("en-GB", {
+                year: '2-digit',
+                month: '2-digit',
+                day: '2-digit'
+            });
+        }
+    },
+
+    getDom: function() {
+        var wrapper = document.createElement("div");
+        // Set custom width if provided.
+        if (this.config.width) {
+            wrapper.style.width = this.config.width;
+        }
+        
+        if (!this.dataReceived || this.dataReceived.length === 0) {
+            wrapper.innerHTML = "No tank data available.";
+            return wrapper;
+        }
+        
+        var labelStyle = "color: grey; margin-right: 5px;";
+        var defaultInfoStyle = "color: white;";
+        var errorStyle = "color: red;";
+        
+        // Debug log each tank object received
+        this.dataReceived.forEach((tank) => {
+            console.log("Tank data received:", tank);
+            var tankWrapper = document.createElement("div");
+            tankWrapper.style.marginBottom = "10px";
+            tankWrapper.style.paddingBottom = "5px";
+            tankWrapper.style.borderBottom = "1px solid grey";
+            
+            // Tank Name row
+            tankWrapper.appendChild(this.createRow("Tank:", tank.tankName, labelStyle, defaultInfoStyle));
+            
+            // If there's an error, display it and skip the rest.
+            if (tank.error) {
+                tankWrapper.appendChild(this.createRow("Error:", tank.error, labelStyle, errorStyle));
+            } else {
+                // Fill Level
+                if (tank.displayFillLevel) {
+                    tankWrapper.appendChild(this.createRow("Fill level:", tank.fillLevel, labelStyle, defaultInfoStyle));
+                }
+                
+                // Quantity remaining
+                if (tank.displayQuantityRemaining) {
+                    tankWrapper.appendChild(this.createRow("Quantity remaining:", tank.litresRemaining, labelStyle, defaultInfoStyle));
+                }
+                
+                // Average use per day (Consumption Rate)
+                if (tank.displayConsumption) {
+                    tankWrapper.appendChild(this.createRow("Average use per day:", tank.consumptionRate, labelStyle, defaultInfoStyle));
+                }
+                
+                // Last Reading
+                if (tank.displayLastReading) {
+                    var formattedLastReading = this.formatDate(tank.lastReadingDate, true);
+                    tankWrapper.appendChild(this.createRow("Last reading:", formattedLastReading, labelStyle, defaultInfoStyle));
+                }
+                
+                // Expected empty
+                if (tank.displayExpectedEmpty) {
+                    tankWrapper.appendChild(this.createRow("Expected empty:", this.formatDate(tank.runOutDate, false), labelStyle, defaultInfoStyle));
+                }
+            }
+            
+            wrapper.appendChild(tankWrapper);
+        });
+        
+        return wrapper;
+    }
+});
+#
