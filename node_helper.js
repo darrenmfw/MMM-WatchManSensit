@@ -3,6 +3,31 @@ var https = require("https");
 var xml2js = require("xml2js");
 
 module.exports = NodeHelper.create({
+    // Simplified function to format a date.
+    // It logs the raw date and then returns a locale string or "N/A".
+    formatDate: function(dateString, includeTime) {
+        if (!dateString) return "N/A";
+        dateString = dateString.trim();
+        console.log("DEBUG ReadingDate:", dateString);
+        var d = new Date(dateString);
+        if (isNaN(d.getTime())) return "N/A";
+        if (includeTime) {
+            return d.toLocaleString("en-GB", { 
+                year: '2-digit', 
+                month: '2-digit', 
+                day: '2-digit', 
+                hour: '2-digit', 
+                minute: '2-digit'
+            });
+        } else {
+            return d.toLocaleDateString("en-GB", { 
+                year: '2-digit', 
+                month: '2-digit', 
+                day: '2-digit'
+            });
+        }
+    },
+
     updateLatestLevel: function(config) {
         var self = this;
         var tanks = config.tanks;
@@ -27,11 +52,9 @@ module.exports = NodeHelper.create({
         validTanks.slice(0, 3).forEach(function(tankConfig, index) {
             var userId, signalmanNo;
             if (index === 0) {
-                // For tank 1, use its own serial for both.
                 userId = "BOX" + tankConfig.serialNumber;
                 signalmanNo = tankConfig.serialNumber;
             } else {
-                // For tanks 2 and 3, use primaryUserSerial for user ID and their own serial for signalman.
                 userId = "BOX" + primaryUserSerial;
                 signalmanNo = tankConfig.serialNumber;
             }
@@ -88,48 +111,16 @@ module.exports = NodeHelper.create({
                                 if (!resultData) { throw new Error("Missing SoapMobileAPPGetLatestLevel_v3Result"); }
                                 
                                 var levelElement = resultData.Level;
-                                // Accept valid data if LevelPercentage exists and is >= 0.
                                 if (levelElement && levelElement.LevelPercentage && parseFloat(levelElement.LevelPercentage.trim()) >= 0) {
                                     var fillLevel = levelElement.LevelPercentage;
-                                    
-                                    // Process ReadingDate and RunOutDate.
                                     var rawReadingDate = levelElement.ReadingDate ? levelElement.ReadingDate.trim() : "";
                                     var rawRunOutDate = levelElement.RunOutDate ? levelElement.RunOutDate.trim() : "";
                                     
-                                    if(rawReadingDate === "0001-01-01T00:00:00") {
-                                        rawReadingDate = "";
-                                    }
-                                    if(rawRunOutDate === "0001-01-01T00:00:00") {
-                                        rawRunOutDate = "";
-                                    }
+                                    if(rawReadingDate === "0001-01-01T00:00:00") { rawReadingDate = ""; }
+                                    if(rawRunOutDate === "0001-01-01T00:00:00") { rawRunOutDate = ""; }
                                     
-                                    // Parse ReadingDate. If initial parsing fails, try appending "Z".
-                                    var d = new Date(rawReadingDate);
-                                    if (isNaN(d.getTime()) && rawReadingDate !== "") {
-                                        d = new Date(rawReadingDate + "Z");
-                                    }
-                                    var formattedReadingDate = (!rawReadingDate || isNaN(d.getTime()))
-                                        ? "N/A"
-                                        : d.toLocaleString("en-GB", {
-                                            year: '2-digit',
-                                            month: '2-digit',
-                                            day: '2-digit',
-                                            hour: '2-digit',
-                                            minute: '2-digit'
-                                        });
-                                    
-                                    // Parse RunOutDate similarly.
-                                    var dRun = new Date(rawRunOutDate);
-                                    if (isNaN(dRun.getTime()) && rawRunOutDate !== "") {
-                                        dRun = new Date(rawRunOutDate + "Z");
-                                    }
-                                    var formattedRunOutDate = (!rawRunOutDate || isNaN(dRun.getTime()))
-                                        ? "N/A"
-                                        : dRun.toLocaleDateString("en-GB", {
-                                            year: '2-digit',
-                                            month: '2-digit',
-                                            day: '2-digit'
-                                        });
+                                    var formattedReadingDate = self.formatDate(rawReadingDate, true);
+                                    var formattedRunOutDate = self.formatDate(rawRunOutDate, false);
                                     
                                     var litres = levelElement.LevelLitres || "N/A";
                                     var consumption = levelElement.ConsumptionRate || "N/A";
