@@ -74,23 +74,9 @@ Module.register("MMM-WatchManSensit", {
         return row;
     },
 
-    // Custom function to manually format the date as "HH:MM, DD/MM/YY"
-    formatLastReading: function(dateString) {
-        var d = new Date(dateString);
-        if (isNaN(d.getTime())) {
-            return "N/A";
-        }
-        var hours = ("0" + d.getHours()).slice(-2);
-        var minutes = ("0" + d.getMinutes()).slice(-2);
-        var day = ("0" + d.getDate()).slice(-2);
-        var month = ("0" + (d.getMonth() + 1)).slice(-2);
-        var year = d.getFullYear().toString().slice(-2);
-        return hours + ":" + minutes + ", " + day + "/" + month + "/" + year;
-    },
-
     getDom: function() {
         var wrapper = document.createElement("div");
-        // Set the custom width if provided.
+        // Set custom width if provided.
         if (this.config.width) {
             wrapper.style.width = this.config.width;
         }
@@ -132,14 +118,20 @@ Module.register("MMM-WatchManSensit", {
                     tankWrapper.appendChild(this.createRow("Average use per day:", tank.consumptionRate, labelStyle, defaultInfoStyle));
                 }
                 
-                // Last Reading: Using our custom formatLastReading function
+                // Last Reading: Simply use toLocaleString (will use the default format for "en-GB")
                 if (tank.displayLastReading) {
-                    var formattedLastReading = this.formatLastReading(tank.lastReadingDate);
+                    var formattedLastReading = "N/A";
+                    if (tank.lastReadingDate && tank.lastReadingDate !== "N/A") {
+                        var d = new Date(tank.lastReadingDate);
+                        if (!isNaN(d.getTime())) {
+                            formattedLastReading = d.toLocaleString("en-GB");
+                        }
+                    }
                     var lastReadingDataStyle = defaultInfoStyle;
                     if (tank.lastReadingDate && tank.lastReadingDate !== "N/A") {
                         var readingDateObj = new Date(tank.lastReadingDate);
                         var now = new Date();
-                        if ((now - readingDateObj) > 48 * 3600 * 1000) {
+                        if ((now - readingDateObj) > 48 * 3600 * 1000) { // More than 48 hours old
                             lastReadingDataStyle = errorStyle;
                         }
                     }
