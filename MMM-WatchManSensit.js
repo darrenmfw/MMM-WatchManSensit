@@ -74,6 +74,37 @@ Module.register("MMM-WatchManSensit", {
         return row;
     },
 
+    // Custom function to format a date string.
+    // If includeTime is true, returns a locale string using "en-GB".
+    // If parsing fails, it will try appending "Z" before giving up.
+    formatDate: function(dateString, includeTime) {
+        if (!dateString) return "N/A";
+        dateString = dateString.trim();
+        var d = new Date(dateString);
+        if (isNaN(d.getTime())) {
+            // If parsing failed, try appending "Z" to force UTC interpretation.
+            if (!dateString.endsWith("Z")) {
+                d = new Date(dateString + "Z");
+            }
+        }
+        if (isNaN(d.getTime())) return "N/A";
+        if (includeTime) {
+            return d.toLocaleString("en-GB", {
+                year: '2-digit',
+                month: '2-digit',
+                day: '2-digit',
+                hour: '2-digit',
+                minute: '2-digit'
+            });
+        } else {
+            return d.toLocaleDateString("en-GB", {
+                year: '2-digit',
+                month: '2-digit',
+                day: '2-digit'
+            });
+        }
+    },
+
     getDom: function() {
         var wrapper = document.createElement("div");
         // Set custom width if provided.
@@ -118,21 +149,15 @@ Module.register("MMM-WatchManSensit", {
                     tankWrapper.appendChild(this.createRow("Average use per day:", tank.consumptionRate, labelStyle, defaultInfoStyle));
                 }
                 
-                // Last Reading: simply use toLocaleString("en-GB") without custom formatting.
+                // Last Reading: Use the formatDate function
                 if (tank.displayLastReading) {
-                    var formattedLastReading = "N/A";
-                    if (tank.lastReadingDate) {
-                        var d = new Date(tank.lastReadingDate);
-                        if (!isNaN(d.getTime())) {
-                            formattedLastReading = d.toLocaleString("en-GB");
-                        }
-                    }
+                    var formattedLastReading = this.formatDate(tank.lastReadingDate, true);
                     tankWrapper.appendChild(this.createRow("Last reading:", formattedLastReading, labelStyle, defaultInfoStyle));
                 }
                 
                 // Expected empty
                 if (tank.displayExpectedEmpty) {
-                    tankWrapper.appendChild(this.createRow("Expected empty:", tank.runOutDate, labelStyle, defaultInfoStyle));
+                    tankWrapper.appendChild(this.createRow("Expected empty:", this.formatDate(tank.runOutDate, false), labelStyle, defaultInfoStyle));
                 }
             }
             
