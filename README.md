@@ -3,13 +3,13 @@
 **Release Date:** February 2025
 
 ## Overview
-MMM-WatchManSensit v1.1.1 builds on previous releases by introducing enhanced multi‑tank support and new data lines. In this version, you can configure up to three tanks—each defined by a single serial number and a tank name. The module uses the serial number from the first tank (Tank 1) to construct the user ID (by prepending "BOX") for all SOAP requests, while each tank’s own serial number is used as its signalman number. **IMPORTANT:** The first tank's serial number MUST be the one from the first tank set up in the Watchman Connect app.
+MMM-WatchManSensit v1.1.1 builds on previous releases by introducing enhanced multi‑tank support, additional data lines, and per-data-line visibility functionality. In this version, you can configure up to three tanks—each defined by a single serial number and a tank name. The module uses the serial number from the first tank (Tank 1) to construct the user ID (by prepending "BOX") for all SOAP requests, while each tank’s own serial number is used as its signalman number. **IMPORTANT:** The first tank's serial number MUST be the one from the first tank set up in the Watchman Connect app.
 
 For each tank, the module retrieves and displays:
-- **Fill level:** e.g. "85%"
-- **Quantity remaining:** e.g. "2087 L"
+- **Fill level:** e.g., "85%"
+- **Quantity remaining:** e.g., "2087 L" (formerly "Litres remaining")
 - **Average use per day:** The consumption rate (appended with " L")
-- **Last reading:** The timestamp when the tank was last read (formatted without seconds, with a 2‑digit year)
+- **Last reading:** The timestamp when the tank was last read (formatted as "HH:MM, DD/MM/YY")
 - **Expected empty:** The expected run‑out date (formatted as date-only with a 2‑digit year)
 
 Conditional formatting is applied:
@@ -18,7 +18,7 @@ Conditional formatting is applied:
   - The "Last reading" is over 48 hours old (displayed in red).
   - The "Expected empty" date is within 4 weeks (displayed in red).
 
-Additionally, each tank configuration supports optional boolean flags to control the visibility of individual data lines.
+Each tank configuration supports optional boolean flags to control the visibility of each data line.
 
 ## New Features
 - **Multi-Tank Support:**  
@@ -36,6 +36,8 @@ Additionally, each tank configuration supports optional boolean flags to control
     - `displayLastReading` – shows/hides the "Last reading:" line.
     - `displayExpectedEmpty` – shows/hides the "Expected empty:" line.
   - These flags default to true if not set.
+- **Custom Width Configuration:**  
+  - A new `width` property is available in the module configuration. The default is `"auto"`, which means the module will automatically adapt to the container defined by your theme. You can override this by specifying a fixed width (e.g., `"300px"`) or a percentage (e.g., `"50%"`).
 - **SOAP-Based Data Retrieval:**  
   - Retrieves fill level, quantity remaining, consumption rate, last reading timestamp, and expected empty (run‑out) date for each tank.
 - **Conditional UI Display:**  
@@ -49,7 +51,7 @@ Additionally, each tank configuration supports optional boolean flags to control
 - Node.js (included with MagicMirror)
 - Internet connectivity to access the Connect Sensor SOAP service
 - **Important:** All tanks to be displayed on the module must be set up and working in the Watchman Connect app first.  
-  Download the Watchman Connect app from the [Apple App Store](https://apps.apple.com/gb/app/watchman-connect/id1587348277) or the [Google Play Store](https://play.google.com/store/apps/details?id=com.kingspankwe.watchmanconnect&hl=en_GB).
+  Download the Watchman Connect app from the [Apple App Store](https://apps.apple.com/gb/app/watchman-connect/id1587348277) or [Google Play Store](https://play.google.com/store/apps/details?id=com.kingspankwe.watchmanconnect&hl=en_GB).
 
 ## Installation
 
@@ -122,7 +124,7 @@ Additionally, each tank configuration supports optional boolean flags to control
    }
    ```
 
-   **Note:** The `width` property sets the module container's width. By default, it is set to `"auto"`, which means it will automatically adapt to the container defined by your theme. You can override this by specifying a fixed width (e.g., `"300px"`) or a percentage (e.g., `"50%"`).
+   **Note:** The `width` property sets the module container's width. By default, it is `"auto"`, meaning it will adapt to the container defined by your theme. You can override this by specifying a fixed width (e.g., `"300px"`) or a percentage (e.g., `"50%"`).
 
 4. **Restart MagicMirror**
 
@@ -146,9 +148,9 @@ Additionally, each tank configuration supports optional boolean flags to control
    ```
    with the SOAPAction `"http://mobileapp/SoapMobileAPPGetLatestLevel_v3"`. The SOAP response is parsed to extract:
    - **LevelPercentage:** The fill level.
-   - **LevelLitres:** The quantity remaining (displayed as "Quantity remaining:").
-   - **ConsumptionRate:** The average use per day (displayed as "Average use per day:" with a " L" suffix).
-   - **ReadingDate:** The last reading timestamp (formatted without seconds and with a 2-digit year).
+   - **LevelLitres:** The quantity remaining.
+   - **ConsumptionRate:** The average use per day.
+   - **ReadingDate:** The last reading timestamp (formatted as "HH:MM, DD/MM/YY").
    - **RunOutDate:** The expected empty date (formatted as date-only with a 2-digit year).
    
 3. **Display:**  
@@ -157,10 +159,36 @@ Additionally, each tank configuration supports optional boolean flags to control
    - **Fill level:** e.g., "Fill level: 85%"
    - **Quantity remaining:** e.g., "Quantity remaining: 2087 L"
    - **Average use per day:** e.g., "Average use per day: 20.50 L"
-   - **Last reading:** e.g., "Last reading: 09/02/25, 02:44" (displayed in red if over 48 hours old)
+   - **Last reading:** e.g., "Last reading: 02:44, 12/02/25" (displayed in red if over 48 hours old)
    - **Expected empty:** e.g., "Expected empty: 25/04/25" (displayed in red if within 4 weeks)
    
-   Each data line can be individually hidden via configuration flags. Tanks with invalid data or a blank serial number are omitted or display an error message.
+   Each data line can be individually hidden via configuration flags. Tanks that return invalid data or have a blank serial number are omitted (or display an error message).
+
+## Manual Test
+
+To manually pull data from Watchman, you can use the following cURL command in your terminal. This command sends a SOAP request to the Watchman Connect SOAP service and returns a raw XML response. Replace the demo values with your actual credentials.
+
+```bash
+curl -X POST \
+  -H "Content-Type: text/xml; charset=utf-8" \
+  -H 'SOAPAction: "http://mobileapp/SoapMobileAPPGetLatestLevel_v3"' \
+  -d '<?xml version="1.0" encoding="utf-8"?>
+<soap:Envelope xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" 
+               xmlns:xsd="http://www.w3.org/2001/XMLSchema" 
+               xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/">
+  <soap:Body>
+    <SoapMobileAPPGetLatestLevel_v3 xmlns="http://mobileapp/">
+      <userid>BOX12345678</userid>
+      <password>Password1!</password>
+      <signalmanno>12345678</signalmanno>
+      <culture>en</culture>
+    </SoapMobileAPPGetLatestLevel_v3>
+  </soap:Body>
+</soap:Envelope>' \
+  https://www.connectsensor.com/soap/MobileApp.asmx
+```
+
+When you run this command, you should see a raw XML response containing elements such as `<ReadingDate>`, `<LevelPercentage>`, `<LevelLitres>`, and `<ConsumptionRate>`. This allows you to verify that the Watchman Connect service is returning valid data before integrating it with the module.
 
 ## Repository
 
