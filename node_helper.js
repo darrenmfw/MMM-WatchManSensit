@@ -87,6 +87,7 @@ module.exports = NodeHelper.create({
 
                                     var formattedRunOutDate = runOutDate !== "0001-01-01T00:00:00" ? new Date(runOutDate).toLocaleDateString("en-GB") : "N/A";
                                     var formattedReadingDate = readingDate !== "0001-01-01T00:00:00" ? new Date(readingDate).toLocaleString("en-GB") : "N/A";
+                                    console.log("Formatted Reading Date:", formattedReadingDate);
                                     
                                     results[index] = {
                                         tankName: tankConfig.tankName,
