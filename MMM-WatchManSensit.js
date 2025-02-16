@@ -12,7 +12,6 @@ Module.register("MMM-WatchManSensit", {
                 displayFillLevel: true,
                 displayQuantityRemaining: true,
                 displayConsumption: true,
-                // Removed displayLastReading flag
                 displayExpectedEmpty: true
             },
             {
@@ -21,7 +20,6 @@ Module.register("MMM-WatchManSensit", {
                 displayFillLevel: true,
                 displayQuantityRemaining: true,
                 displayConsumption: true,
-                // Removed displayLastReading flag
                 displayExpectedEmpty: true
             },
             {
