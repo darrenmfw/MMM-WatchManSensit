@@ -90,7 +90,7 @@ module.exports = NodeHelper.create({
                                 if (levelElement && levelElement.LevelPercentage && parseFloat(levelElement.LevelPercentage.trim()) >= 0) {
                                     var fillLevel = levelElement.LevelPercentage;
                                     // Get readingDate (will no longer be used)
-                                    var readingDate = levelElement.ReadingDate;
+                                    // var readingDate = levelElement.ReadingDate;
                                     // Process runOutDate
                                     var runOutDate = levelElement.RunOutDate;
                                     var litres = levelElement.LevelLitres || "N/A";
