@@ -162,3 +162,5 @@ this.dataReceived.forEach((tank) => {
 
     wrapper.appendChild(tankWrapper);
 });
+    return wrapper;
+}
