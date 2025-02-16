@@ -27,11 +27,9 @@ module.exports = NodeHelper.create({
         validTanks.slice(0, 3).forEach(function(tankConfig, index) {
             var userId, signalmanNo;
             if (index === 0) {
-                // For tank 1, use its own serial for both.
                 userId = "BOX" + tankConfig.serialNumber;
                 signalmanNo = tankConfig.serialNumber;
             } else {
-                // For tanks 2 and 3, use primaryUserSerial for user ID and their own serial for signalman.
                 userId = "BOX" + primaryUserSerial;
                 signalmanNo = tankConfig.serialNumber;
             }
@@ -91,31 +89,12 @@ module.exports = NodeHelper.create({
                                 // Accept valid data if LevelPercentage exists and is >= 0.
                                 if (levelElement && levelElement.LevelPercentage && parseFloat(levelElement.LevelPercentage.trim()) >= 0) {
                                     var fillLevel = levelElement.LevelPercentage;
+                                    // Get readingDate (will no longer be used)
                                     var readingDate = levelElement.ReadingDate;
+                                    // Process runOutDate
                                     var runOutDate = levelElement.RunOutDate;
                                     var litres = levelElement.LevelLitres || "N/A";
                                     var consumption = levelElement.ConsumptionRate || "N/A";
-                                    
-                                    //var d = new Date(readingDate);
-                                    //var formattedReadingDate = d.toLocaleString("en-GB", {
-                                    //    year: '2-digit',
-                                    //    month: '2-digit',
-                                    //    day: '2-digit',
-                                    //    hour: '2-digit',
-                                    //    minute: '2-digit'
-                                    //});
-
-                                    var formattedReadingDate = "";
-                                    if (readingDate && readingDate !== "0001-01-01T00:00:00") {
-                                        var d = new Date(readingDate);
-                                        formattedReadingDate = d.toLocaleDateString("en-GB", {
-                                            year: '2-digit',
-                                            month: '2-digit',
-                                            day: '2-digit',
-                                            hour: '2-digit',
-                                            minute: '2-digit'
-                                        });
-                                    }
                                     
                                     var formattedRunOutDate = "";
                                     if (runOutDate && runOutDate !== "0001-01-01T00:00:00") {
@@ -131,13 +110,13 @@ module.exports = NodeHelper.create({
                                         tankName: tankConfig.tankName,
                                         fillLevel: fillLevel + "%",
                                         litresRemaining: litres + (litres !== "N/A" ? " L" : ""),
-                                        lastReadingDate: formattedReadingDate,
+                                        // Removed lastReadingDate from the result.
                                         runOutDate: formattedRunOutDate,
                                         rawRunOutDate: runOutDate,
                                         consumptionRate: consumption + (consumption !== "N/A" ? " L" : ""),
                                         displayFillLevel: (tankConfig.displayFillLevel !== false),
                                         displayQuantityRemaining: (tankConfig.displayQuantityRemaining !== false),
-                                        displayLastReading: (tankConfig.displayLastReading !== false),
+                                        // Removed displayLastReading flag.
                                         displayExpectedEmpty: (tankConfig.displayExpectedEmpty !== false),
                                         displayConsumption: (tankConfig.displayConsumption !== false)
                                     };
@@ -147,7 +126,7 @@ module.exports = NodeHelper.create({
                                         error: "No valid level data",
                                         displayFillLevel: (tankConfig.displayFillLevel !== false),
                                         displayQuantityRemaining: (tankConfig.displayQuantityRemaining !== false),
-                                        displayLastReading: (tankConfig.displayLastReading !== false),
+                                        // Removed displayLastReading flag.
                                         displayExpectedEmpty: (tankConfig.displayExpectedEmpty !== false),
                                         displayConsumption: (tankConfig.displayConsumption !== false)
                                     };
