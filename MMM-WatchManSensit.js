@@ -96,6 +96,7 @@ Module.register("MMM-WatchManSensit", {
                 }
                 
                 if (tank.displayLastReading) {
+                    console.log("Displaying Last Reading for:", tank.tankName, tank.readingDate); // Add this
                     tankWrapper.appendChild(this.createRow("Last reading:", tank.readingDate, labelStyle, defaultInfoStyle));
                 }
                 
