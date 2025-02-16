@@ -10,7 +10,6 @@ module.exports = NodeHelper.create({
             self.sendSocketNotification("WATCHMAN_DATA_RESPONSE", []);
             return;
         }
-        // Filter out tanks with a blank or missing serial number.
         var validTanks = tanks.filter(function(tank) {
             return tank.serialNumber && tank.serialNumber.trim() !== "";
         });
@@ -21,7 +20,6 @@ module.exports = NodeHelper.create({
         var totalRequests = Math.min(validTanks.length, 3);
         var results = [];
         var completedRequests = 0;
-        // Use the first tank's serial for the user ID for all tanks.
         var primaryUserSerial = validTanks[0].serialNumber;
 
         validTanks.slice(0, 3).forEach(function(tankConfig, index) {
@@ -66,7 +64,6 @@ module.exports = NodeHelper.create({
                     data += chunk;
                 });
                 res.on("end", function() {
-                    console.log("Received SOAP response for tank " + tankConfig.serialNumber + ":", data);
                     var parser = new xml2js.Parser({
                         explicitArray: false,
                         tagNameProcessors: [xml2js.processors.stripPrefix],
@@ -77,32 +74,19 @@ module.exports = NodeHelper.create({
                             results[index] = { tankName: tankConfig.tankName, error: "XML parse error: " + err };
                         } else {
                             try {
-                                if (!result.Envelope) { throw new Error("Missing Envelope"); }
-                                var body = result.Envelope.Body;
-                                if (!body) { throw new Error("Missing Body"); }
-                                var response = body.SoapMobileAPPGetLatestLevel_v3Response;
-                                if (!response) { throw new Error("Missing SoapMobileAPPGetLatestLevel_v3Response"); }
-                                var resultData = response.SoapMobileAPPGetLatestLevel_v3Result;
-                                if (!resultData) { throw new Error("Missing SoapMobileAPPGetLatestLevel_v3Result"); }
+                                var body = result.Envelope?.Body?.SoapMobileAPPGetLatestLevel_v3Response?.SoapMobileAPPGetLatestLevel_v3Result;
+                                if (!body) throw new Error("Missing SOAP response data");
                                 
-                                var levelElement = resultData.Level;
-                                // Accept valid data if LevelPercentage exists and is >= 0.
+                                var levelElement = body.Level;
                                 if (levelElement && levelElement.LevelPercentage && parseFloat(levelElement.LevelPercentage.trim()) >= 0) {
                                     var fillLevel = levelElement.LevelPercentage;
-                                    // Process runOutDate
                                     var runOutDate = levelElement.RunOutDate;
                                     var litres = levelElement.LevelLitres || "N/A";
                                     var consumption = levelElement.ConsumptionRate || "N/A";
-                                    
-                                    var formattedRunOutDate = "";
-                                    if (runOutDate && runOutDate !== "0001-01-01T00:00:00") {
-                                        var dRun = new Date(runOutDate);
-                                        formattedRunOutDate = dRun.toLocaleDateString("en-GB", {
-                                            year: '2-digit',
-                                            month: '2-digit',
-                                            day: '2-digit'
-                                        });
-                                    }
+                                    var readingDate = levelElement.ReadingDate || "N/A";
+
+                                    var formattedRunOutDate = runOutDate !== "0001-01-01T00:00:00" ? new Date(runOutDate).toLocaleDateString("en-GB") : "N/A";
+                                    var formattedReadingDate = readingDate !== "0001-01-01T00:00:00" ? new Date(readingDate).toLocaleString("en-GB") : "N/A";
                                     
                                     results[index] = {
                                         tankName: tankConfig.tankName,
@@ -111,20 +95,14 @@ module.exports = NodeHelper.create({
                                         runOutDate: formattedRunOutDate,
                                         rawRunOutDate: runOutDate,
                                         consumptionRate: consumption + (consumption !== "N/A" ? " L" : ""),
-                                        displayFillLevel: (tankConfig.displayFillLevel !== false),
-                                        displayQuantityRemaining: (tankConfig.displayQuantityRemaining !== false),
-                                        displayExpectedEmpty: (tankConfig.displayExpectedEmpty !== false),
-                                        displayConsumption: (tankConfig.displayConsumption !== false)
+                                        readingDate: formattedReadingDate,
+                                        displayFillLevel: tankConfig.displayFillLevel !== false,
+                                        displayQuantityRemaining: tankConfig.displayQuantityRemaining !== false,
+                                        displayExpectedEmpty: tankConfig.displayExpectedEmpty !== false,
+                                        displayConsumption: tankConfig.displayConsumption !== false
                                     };
                                 } else {
-                                    results[index] = {
-                                        tankName: tankConfig.tankName,
-                                        error: "No valid level data",
-                                        displayFillLevel: (tankConfig.displayFillLevel !== false),
-                                        displayQuantityRemaining: (tankConfig.displayQuantityRemaining !== false),
-                                        displayExpectedEmpty: (tankConfig.displayExpectedEmpty !== false),
-                                        displayConsumption: (tankConfig.displayConsumption !== false)
-                                    };
+                                    results[index] = { tankName: tankConfig.tankName, error: "No valid level data" };
                                 }
                             } catch (ex) {
                                 results[index] = { tankName: tankConfig.tankName, error: "Error extracting data: " + ex };
@@ -137,7 +115,6 @@ module.exports = NodeHelper.create({
                     });
                 });
             });
-            
             req.on("error", function(err) {
                 results[index] = { tankName: tankConfig.tankName, error: "HTTP error: " + err };
                 completedRequests++;
@@ -145,12 +122,10 @@ module.exports = NodeHelper.create({
                     self.sendSocketNotification("WATCHMAN_DATA_RESPONSE", results);
                 }
             });
-            
             req.write(soapEnvelope);
             req.end();
         });
     },
-
     socketNotificationReceived: function(notification, payload) {
         if (notification === "WATCHMAN_DATA_REQUEST") {
             this.updateLatestLevel(payload);
