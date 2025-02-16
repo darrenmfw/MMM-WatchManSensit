@@ -38,6 +38,7 @@ Module.register("MMM-WatchManSensit", {
 
     socketNotificationReceived: function(notification, payload) {
         if (notification === "WATCHMAN_DATA_RESPONSE") {
+            console.log("Data received in frontend:", payload); // Add this
             this.dataReceived = payload;
             this.updateDom();
         } else if (notification === "WATCHMAN_ERROR") {
