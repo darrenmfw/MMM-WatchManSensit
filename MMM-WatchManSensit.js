@@ -80,42 +80,85 @@ Module.register("MMM-WatchManSensit", {
         var defaultInfoStyle = "color: white;";
         var errorStyle = "color: red;";
         
-        this.dataReceived.forEach((tank) => {
-            var tankWrapper = document.createElement("div");
-            tankWrapper.style.marginBottom = "10px";
-            tankWrapper.style.paddingBottom = "5px";
-            tankWrapper.style.borderBottom = "1px solid grey";
+//         this.dataReceived.forEach((tank) => {
+//             var tankWrapper = document.createElement("div");
+//             tankWrapper.style.marginBottom = "10px";
+//             tankWrapper.style.paddingBottom = "5px";
+//             tankWrapper.style.borderBottom = "1px solid grey";
             
-            tankWrapper.appendChild(this.createRow("Tank:", tank.tankName, labelStyle, defaultInfoStyle));
+//             tankWrapper.appendChild(this.createRow("Tank:", tank.tankName, labelStyle, defaultInfoStyle));
             
-            if (tank.error) {
-                tankWrapper.appendChild(this.createRow("Error:", tank.error, labelStyle, errorStyle));
-            } else {
-                if (tank.displayFillLevel) {
-                    tankWrapper.appendChild(this.createRow("Fill level:", tank.fillLevel, labelStyle, defaultInfoStyle));
-                }
+//             if (tank.error) {
+//                 tankWrapper.appendChild(this.createRow("Error:", tank.error, labelStyle, errorStyle));
+//             } else {
+//                 if (tank.displayFillLevel) {
+//                     tankWrapper.appendChild(this.createRow("Fill level:", tank.fillLevel, labelStyle, defaultInfoStyle));
+//                 }
                 
-                if (tank.displayLastReading) {
-                    console.log("Displaying Last Reading for:", tank.tankName, tank.readingDate); // Add this
-                    tankWrapper.appendChild(this.createRow("Last reading:", tank.readingDate, labelStyle, defaultInfoStyle));
-                }
+//                 if (tank.displayLastReading) {
+//                     console.log("Displaying Last Reading for:", tank.tankName, tank.readingDate); // Add this
+//                     tankWrapper.appendChild(this.createRow("Last reading:", tank.readingDate, labelStyle, defaultInfoStyle));
+//                 }
                 
-                if (tank.displayQuantityRemaining) {
-                    tankWrapper.appendChild(this.createRow("Quantity remaining:", tank.litresRemaining, labelStyle, defaultInfoStyle));
-                }
+//                 if (tank.displayQuantityRemaining) {
+//                     tankWrapper.appendChild(this.createRow("Quantity remaining:", tank.litresRemaining, labelStyle, defaultInfoStyle));
+//                 }
                 
-                if (tank.displayConsumption) {
-                    tankWrapper.appendChild(this.createRow("Average use per day:", tank.consumptionRate, labelStyle, defaultInfoStyle));
-                }
+//                 if (tank.displayConsumption) {
+//                     tankWrapper.appendChild(this.createRow("Average use per day:", tank.consumptionRate, labelStyle, defaultInfoStyle));
+//                 }
                 
-                if (tank.displayExpectedEmpty) {
-                    tankWrapper.appendChild(this.createRow("Expected empty:", tank.runOutDate, labelStyle, defaultInfoStyle));
-                }
-            }
+//                 if (tank.displayExpectedEmpty) {
+//                     tankWrapper.appendChild(this.createRow("Expected empty:", tank.runOutDate, labelStyle, defaultInfoStyle));
+//                 }
+//             }
             
-            wrapper.appendChild(tankWrapper);
-        });
+//             wrapper.appendChild(tankWrapper);
+//         });
         
-        return wrapper;
+//         return wrapper;
+//     }
+// });
+this.dataReceived.forEach((tank) => {
+    console.log("Displaying Last Reading for:", tank.tankName, tank.readingDate); // Debug log
+
+    var tankWrapper = document.createElement("div");
+    tankWrapper.style.marginBottom = "10px";
+    tankWrapper.style.paddingBottom = "5px";
+    tankWrapper.style.borderBottom = "1px solid grey";
+
+    // Tank Name row
+    tankWrapper.appendChild(this.createRow("Tank:", tank.tankName, labelStyle, defaultInfoStyle));
+
+    if (tank.error) {
+        tankWrapper.appendChild(this.createRow("Error:", tank.error, labelStyle, errorStyle));
+    } else {
+        // Fill Level
+        if (tank.displayFillLevel) {
+            tankWrapper.appendChild(this.createRow("Fill level:", tank.fillLevel, labelStyle, defaultInfoStyle));
+        }
+
+        // Last Reading - Force display
+        if (tank.readingDate) {
+            console.log("Appending Last Reading:", tank.readingDate); // Debug log
+            tankWrapper.appendChild(this.createRow("Last reading:", tank.readingDate, labelStyle, defaultInfoStyle));
+        }
+
+        // Quantity Remaining
+        if (tank.displayQuantityRemaining) {
+            tankWrapper.appendChild(this.createRow("Quantity remaining:", tank.litresRemaining, labelStyle, defaultInfoStyle));
+        }
+
+        // Average Use Per Day (Consumption Rate)
+        if (tank.displayConsumption) {
+            tankWrapper.appendChild(this.createRow("Average use per day:", tank.consumptionRate, labelStyle, defaultInfoStyle));
+        }
+
+        // Expected Empty
+        if (tank.displayExpectedEmpty) {
+            tankWrapper.appendChild(this.createRow("Expected empty:", tank.runOutDate, labelStyle, defaultInfoStyle));
+        }
     }
+
+    wrapper.appendChild(tankWrapper);
 });
