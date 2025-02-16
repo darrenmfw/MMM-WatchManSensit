@@ -89,8 +89,6 @@ module.exports = NodeHelper.create({
                                 // Accept valid data if LevelPercentage exists and is >= 0.
                                 if (levelElement && levelElement.LevelPercentage && parseFloat(levelElement.LevelPercentage.trim()) >= 0) {
                                     var fillLevel = levelElement.LevelPercentage;
-                                    // Get readingDate (will no longer be used)
-                                    // var readingDate = levelElement.ReadingDate;
                                     // Process runOutDate
                                     var runOutDate = levelElement.RunOutDate;
                                     var litres = levelElement.LevelLitres || "N/A";
@@ -110,13 +108,11 @@ module.exports = NodeHelper.create({
                                         tankName: tankConfig.tankName,
                                         fillLevel: fillLevel + "%",
                                         litresRemaining: litres + (litres !== "N/A" ? " L" : ""),
-                                        // Removed lastReadingDate from the result.
                                         runOutDate: formattedRunOutDate,
                                         rawRunOutDate: runOutDate,
                                         consumptionRate: consumption + (consumption !== "N/A" ? " L" : ""),
                                         displayFillLevel: (tankConfig.displayFillLevel !== false),
                                         displayQuantityRemaining: (tankConfig.displayQuantityRemaining !== false),
-                                        // Removed displayLastReading flag.
                                         displayExpectedEmpty: (tankConfig.displayExpectedEmpty !== false),
                                         displayConsumption: (tankConfig.displayConsumption !== false)
                                     };
@@ -126,7 +122,6 @@ module.exports = NodeHelper.create({
                                         error: "No valid level data",
                                         displayFillLevel: (tankConfig.displayFillLevel !== false),
                                         displayQuantityRemaining: (tankConfig.displayQuantityRemaining !== false),
-                                        // Removed displayLastReading flag.
                                         displayExpectedEmpty: (tankConfig.displayExpectedEmpty !== false),
                                         displayConsumption: (tankConfig.displayConsumption !== false)
                                     };
