@@ -112,6 +112,7 @@ module.exports = NodeHelper.create({
                         completedRequests++;
                         if (completedRequests === totalRequests) {
                             self.sendSocketNotification("WATCHMAN_DATA_RESPONSE", results);
+                            console.log("Final Data Sent to Frontend:", results); // Add this
                         }
                     });
                 });
