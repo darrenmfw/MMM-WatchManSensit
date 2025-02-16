@@ -12,7 +12,8 @@ Module.register("MMM-WatchManSensit", {
                 displayFillLevel: true,
                 displayQuantityRemaining: true,
                 displayConsumption: true,
-                displayExpectedEmpty: true
+                displayExpectedEmpty: true,
+                displayLastReading: true
             },
             {
                 serialNumber: "87654321", // Tank 2 serial (user ID from Tank 1 is used for this tank)
@@ -20,15 +21,8 @@ Module.register("MMM-WatchManSensit", {
                 displayFillLevel: true,
                 displayQuantityRemaining: true,
                 displayConsumption: true,
-                displayExpectedEmpty: true
-            },
-            {
-                serialNumber: "",         // Blank serial; this tank will be omitted.
-                tankName: "Tertiary Tank",
-                displayFillLevel: true,
-                displayQuantityRemaining: true,
-                displayConsumption: true,
-                displayExpectedEmpty: true
+                displayExpectedEmpty: true,
+                displayLastReading: true
             }
         ]
     },
@@ -51,7 +45,6 @@ Module.register("MMM-WatchManSensit", {
         }
     },
 
-    // Helper function to create a row with flex styling (label left, data right)
     createRow: function(labelText, dataText, labelStyle, dataStyle) {
         var row = document.createElement("div");
         row.style.display = "flex";
@@ -73,7 +66,6 @@ Module.register("MMM-WatchManSensit", {
 
     getDom: function() {
         var wrapper = document.createElement("div");
-        // Set custom width if provided.
         if (this.config.width) {
             wrapper.style.width = this.config.width;
         }
@@ -88,35 +80,32 @@ Module.register("MMM-WatchManSensit", {
         var errorStyle = "color: red;";
         
         this.dataReceived.forEach((tank) => {
-            console.log("Tank data received:", tank);
             var tankWrapper = document.createElement("div");
             tankWrapper.style.marginBottom = "10px";
             tankWrapper.style.paddingBottom = "5px";
             tankWrapper.style.borderBottom = "1px solid grey";
             
-            // Tank Name row
             tankWrapper.appendChild(this.createRow("Tank:", tank.tankName, labelStyle, defaultInfoStyle));
             
-            // If there's an error, display it and skip the rest.
             if (tank.error) {
                 tankWrapper.appendChild(this.createRow("Error:", tank.error, labelStyle, errorStyle));
             } else {
-                // Fill Level
                 if (tank.displayFillLevel) {
                     tankWrapper.appendChild(this.createRow("Fill level:", tank.fillLevel, labelStyle, defaultInfoStyle));
                 }
                 
-                // Quantity remaining
+                if (tank.displayLastReading) {
+                    tankWrapper.appendChild(this.createRow("Last reading:", tank.readingDate, labelStyle, defaultInfoStyle));
+                }
+                
                 if (tank.displayQuantityRemaining) {
                     tankWrapper.appendChild(this.createRow("Quantity remaining:", tank.litresRemaining, labelStyle, defaultInfoStyle));
                 }
                 
-                // Average use per day (Consumption Rate)
                 if (tank.displayConsumption) {
                     tankWrapper.appendChild(this.createRow("Average use per day:", tank.consumptionRate, labelStyle, defaultInfoStyle));
                 }
                 
-                // Expected empty
                 if (tank.displayExpectedEmpty) {
                     tankWrapper.appendChild(this.createRow("Expected empty:", tank.runOutDate, labelStyle, defaultInfoStyle));
                 }
